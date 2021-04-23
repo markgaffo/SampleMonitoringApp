@@ -21,8 +21,9 @@ import java.util.Date;
 public class MainClass {
 
     public static void main(String[] args) throws ParseException {
-        GUIDashboard guiL = new GUIDashboard();
-        guiL.setVisible(true);
+        GUIDashboard guiD = new GUIDashboard();
+        guiD.setVisible(true);
+        
         
 
         String csvFile = "/Users/Mark/Dropbox/Final year/Project/csvFiles/sampleinfo.csv";
