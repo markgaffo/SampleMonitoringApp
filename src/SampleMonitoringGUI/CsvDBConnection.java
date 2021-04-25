@@ -1,19 +1,23 @@
 package SampleMonitoringGUI;
 
 import SampleMonitoringGUI.CsvData;
-import java.sql.*;
-import javax.swing.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 
 
 
-public class CsvDBConnection {
+public class CsvDBConnection{
     
     String url = "jdbc:sqlite:SampleData.db";
     Connection con;
 
-    public static Connection CsvDBConnection() {
-        try {
+    public static Connection CsvDBConnection(){
+        try{
             Class.forName("org.sqlite.JDBC");
             Connection con = DriverManager.getConnection("jdbc:sqlite:SampleData.db");
             System.out.println("Connected");
@@ -24,10 +28,12 @@ public class CsvDBConnection {
         }
     }
 
-    public boolean insertDataIntoDatabase(ArrayList<CsvData> dataList) {
-        con=CsvDBConnection();
-        try {
-            for (CsvData data : dataList) {
+    public boolean insertDataIntoDatabase(ArrayList<CsvData> dataList){
+        //con=CsvDBConnection();
+        
+        try{
+            con.setAutoCommit(false);
+            for(CsvData data : dataList){
                 String query = "INSERT INTO csv_table (SampleNumber, Date, Department, Tests, RequestTime, "
                     + " StartTime ) "
                     + "VALUES(?,?,?,?,?,?)";
@@ -41,14 +47,14 @@ public class CsvDBConnection {
                 statement.setString(6, data.getStarttime());
                 statement.execute();
             }
-                return true;
-            } catch (SQLException e) {
+            return true;
+            } catch (SQLException e){
                 e.printStackTrace();
             }
-            return false;
+        return false;
     }
 
-    public ArrayList<CsvData> getDataFromDatabase(int offset) {
+    public ArrayList<CsvData> getDataFromDatabase(){
         ArrayList<CsvData> dataList = new ArrayList<CsvData>();
 
         String query = "select * from csv_table ";
@@ -57,7 +63,7 @@ public class CsvDBConnection {
         try{
             statement = con.createStatement();
             ResultSet rs = statement.executeQuery(query);
-            while (rs.next()) {
+            while (rs.next()){
                 CsvData data = new CsvData();
 
                 data.setSampleNumber(rs.getInt("SampleNumber"));
@@ -68,18 +74,18 @@ public class CsvDBConnection {
                 data.setStarttime(rs.getString("StartTime"));
                 dataList.add(data);
             }
-            return dataList;
+        return dataList;
         }catch (SQLException e){
             e.printStackTrace();
         } 
         return null;
     }
 
-    public int deleteAllFromDatabase() {
+    public int deleteAllFromDatabase(){
         con=CsvDBConnection();
         String query = "DELETE from csv_table";
         Statement statement;
-        try {
+        try{
             statement = con.createStatement();
             return statement.executeUpdate(query);
         }catch(SQLException e){

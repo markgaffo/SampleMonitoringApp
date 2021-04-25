@@ -5,8 +5,8 @@
         <group>
             <file>file:/C:/Users/Mark/Dropbox/Final%20year/Project/netbeans%20projects/SampleMonitoringApp/src/SampleMonitoringGUI/CsvDBConnection.java</file>
             <file>file:/C:/Users/Mark/Dropbox/Final%20year/Project/netbeans%20projects/SampleMonitoringApp/src/SampleMonitoring/MainClass.java</file>
-            <file>file:/C:/Users/Mark/Dropbox/Final%20year/Project/netbeans%20projects/SampleMonitoringApp/src/SampleMonitoringGUI/CsvData.java</file>
-            <file>file:/C:/Users/Mark/Dropbox/Final%20year/Project/netbeans%20projects/SampleMonitoringApp/src/SampleMonitoringGUI/GUIDashboard.java</file>
+            <file>file:/C:/Users/Mark/Dropbox/Final%20year/Project/netbeans%20projects/SampleMonitoringApp/src/SampleMonitoring/GUIMain.java</file>
+            <file>file:/C:/Users/Mark/Dropbox/Final%20year/Project/netbeans%20projects/SampleMonitoringApp/src/SampleMonitoringGUI/ReportDBConnection.java</file>
         </group>
     </open-files>
 </project-private>

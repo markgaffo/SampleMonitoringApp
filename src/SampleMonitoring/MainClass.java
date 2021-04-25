@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package SampleMonitoring;
 
 import SampleMonitoringGUI.GUIDashboard;
@@ -13,6 +8,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import com.opencsv.CSVReader;
+import javax.swing.UIManager;
 
 /**
  *
@@ -21,10 +20,15 @@ import java.util.Date;
 public class MainClass {
 
     public static void main(String[] args) throws ParseException {
+        
+        try{
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        
         GUIDashboard guiD = new GUIDashboard();
         guiD.setVisible(true);
-        
-        
 
         String csvFile = "/Users/Mark/Dropbox/Final year/Project/csvFiles/sampleinfo.csv";
         String line ="";
@@ -43,15 +47,12 @@ public class MainClass {
                 timeList.add(values[4]);
            }
            System.out.println(timeList);
-           
         }catch(IOException e){
             e.printStackTrace();
         }
 
-        for(int i = 0; i<timeList.size(); i++){
-            
+        for(int i = 0; i<timeList.size(); i++){ 
             holder.add(timeList.get(i));
-            
             timeHolder.add(sdf.parse(holder.get(i)));
                                
             if(timeHolder.get(i).getMinutes() < (systemTime.getMinutes()+30)){

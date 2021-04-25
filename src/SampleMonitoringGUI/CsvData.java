@@ -5,7 +5,7 @@ public class CsvData {
 	int sampleNumber;
 	String Date, Department, Tests, Requesttime, Starttime; 
 	
-	public CsvData() {
+	public CsvData(){
 	}
 	public CsvData(int sampleNumber, String date, String department, String tests, String requesttime, String starttime) {
             this.sampleNumber = sampleNumber;
@@ -16,45 +16,45 @@ public class CsvData {
             Starttime = starttime;
 	}
 
-	public int getSampleNumber() {
+	public int getSampleNumber(){
             return sampleNumber;
 	}
-	public void setSampleNumber(int sampleNumber) {
+	public void setSampleNumber(int sampleNumber){
             this.sampleNumber = sampleNumber;
 	}
 
-	public String getDate() {
+	public String getDate(){
             return Date;
 	}
-	public void setDate(String date) {
+	public void setDate(String date){
             Date = date;
 	}
 
-	public String getDepartment() {
+	public String getDepartment(){
             return Department;
 	}
-	public void setDepartment(String department) {
+	public void setDepartment(String department){
             Department = department;
 	}
 
-	public String getTests() {
+	public String getTests(){
             return Tests;
 	}
-	public void setTests(String tests) {
+	public void setTests(String tests){
             Tests = tests;
 	}
 
-	public String getRequesttime() {
+	public String getRequesttime(){
             return Requesttime;
 	}
-	public void setRequesttime(String requesttime) {
+	public void setRequesttime(String requesttime){
             Requesttime = requesttime;
 	}
 
-	public String getStarttime() {
+	public String getStarttime(){
             return Starttime;
 	}
-	public void setStarttime(String starttime) {
+	public void setStarttime(String starttime){
             Starttime = starttime;
 	}
 }

@@ -1,7 +1,5 @@
 package SampleMonitoringGUI;
 
-import SampleMonitoringGUI.CsvData;
-import SampleMonitoringGUI.CsvDBConnection;
 import java.awt.Color;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
@@ -15,22 +13,29 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 import net.proteanit.sql.DbUtils;
 import java.sql.*;
-import javax.swing.*;
+import com.opencsv.CSVReader;
+import java.awt.Font;
+import java.io.File;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 
 public class GUIDashboard extends javax.swing.JFrame {
 
     static CsvDBConnection csvCon = new CsvDBConnection();
-    
+    static ReportDBConnection repCon = new ReportDBConnection();
     DefaultTableModel model;
     
-    Connection conn = null;
+    Connection csvConn = null;
+    Connection repConn = null;
     PreparedStatement prep = null;
     ResultSet rs = null;
     
@@ -38,18 +43,51 @@ public class GUIDashboard extends javax.swing.JFrame {
     int yMouse;
     public static String csvFile = "/Users/Mark/Dropbox/Final year/Project/netbeans projects/SampleMonitoringApp/ProjectTabledata.csv";
     public static String line ="";
-
+    public static String sampleNum;
+    
     public GUIDashboard() {
         initComponents();
-        model = (DefaultTableModel)sampleTable.getModel();
-        conn=CsvDBConnection.CsvDBConnection();
+        csvConn=CsvDBConnection.CsvDBConnection();
         UpdateTable();   
+        CurrentDate();
+        setTableParmas();
+    }
+    
+    private void setTableParmas(){
+        sampleTable.getColumnModel().getColumn(0).setHeaderValue("Sample Number");
+        sampleTable.getColumnModel().getColumn(1).setHeaderValue("Date");
+        sampleTable.getColumnModel().getColumn(2).setHeaderValue("Department");
+        sampleTable.getColumnModel().getColumn(3).setHeaderValue("Tests");
+        sampleTable.getColumnModel().getColumn(4).setHeaderValue("Request Time");
+        sampleTable.getColumnModel().getColumn(5).setHeaderValue("Start Time");
+        
+        sampleTable.getColumnModel().getColumn(0).setPreferredWidth(30);
+        sampleTable.getColumnModel().getColumn(1).setPreferredWidth(25);
+        sampleTable.getColumnModel().getColumn(2).setPreferredWidth(55);
+        sampleTable.getColumnModel().getColumn(3).setPreferredWidth(70);
+        sampleTable.getColumnModel().getColumn(4).setPreferredWidth(20);
+        sampleTable.getColumnModel().getColumn(5).setPreferredWidth(20);
+        
+        sampleTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        sampleTable.getTableHeader().setOpaque(false);
+        sampleTable.getTableHeader().setBackground(new Color(32, 136, 203));
+        sampleTable.getTableHeader().setForeground(new Color(255, 255, 255));
+        sampleTable.setRowHeight(25);
+    }
+    
+    public void CurrentDate(){
+        Calendar calender = new GregorianCalendar();
+        int day = calender.get(Calendar.DAY_OF_MONTH);
+        int month = calender.get(Calendar.MONTH);
+        int year = calender.get(Calendar.YEAR);
+        
+        dateTf.setText("Current Date: "+day+"/"+(month+1)+"/"+year);  
     }
     
     private void UpdateTable(){
         try {
             String sql = "select * from csv_table";
-            prep=conn.prepareStatement(sql);
+            prep=csvConn.prepareStatement(sql);
             rs=prep.executeQuery();
             sampleTable.setModel(DbUtils.resultSetToTableModel(rs));
         } catch(Exception e){
@@ -64,11 +102,10 @@ public class GUIDashboard extends javax.swing.JFrame {
         }
     }
 
-    private int offSet = 0;
     List<CsvData> lstRecords = null;
 
     public void searchAndFillTable() {
-        lstRecords = csvCon.getDataFromDatabase(offSet);
+        lstRecords = csvCon.getDataFromDatabase();
         loadDataInTable();
     }   
     public void loadDataInTable() {
@@ -90,33 +127,99 @@ public class GUIDashboard extends javax.swing.JFrame {
     }
 
     public static boolean readAndWriteCSVFileToDatabase() {    
-        ArrayList<CsvData> dataList = new ArrayList<CsvData>();
-        String[] test;
-        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
-        while((line = br.readLine()) != null){
-            String[] values = line.split(",");
-            System.out.println(values[3]);
-            CsvData data = new CsvData();
-               data.setSampleNumber(Integer.parseInt(values[0]));
-               data.setDate(values[1]);
-               data.setDepartment(values[2]);
-               data.setTests(values[3]);
-               data.setRequesttime(values[4]);
-               String time = values[5];
-               if(time.length() == 1){
-                   time = "00:0" + time;
-               }else if(time.length() == 2){
-                   time = "00:" + time;
-               }else if(time.length() == 3){
-                   time = "0"+time.substring(0, time.length() - 2) + ":" + time.substring(time.length() - 2, time.length());
-               }else{
-                   time = time.substring(0, time.length() - 2) + ":" + time.substring(time.length() - 2, time.length());
-               }
+        try{
+            FileReader filereader = new FileReader(csvFile); 
+            CSVReader csvReader = new CSVReader(filereader); 
+            String[] nextRecord; 
+            ArrayList<CsvData> dataList = new ArrayList<CsvData>();
+            while((nextRecord = csvReader.readNext()) != null){
+                //System.out.println(nextRecord[3]);
+                CsvData data = new CsvData();
+                data.setSampleNumber(Integer.parseInt(nextRecord[0]));
+                data.setDate(nextRecord[1]);
+                data.setDepartment(nextRecord[2]);
+                data.setTests(nextRecord[3]);
+                data.setRequesttime(nextRecord[4]);
+                String time = nextRecord[5];
+                if(time.length() == 1){
+                    time = "00:0" + time;
+                }else if(time.length() == 2){
+                    time = "00:" + time;
+                }else if(time.length() == 3){
+                    time = "0"+time.substring(0, time.length() - 2) + ":" + time.substring(time.length() - 2, time.length());
+                }else{
+                    time = time.substring(0, time.length() - 2) + ":" + time.substring(time.length() - 2, time.length());
+                }
             data.setStarttime(time);
             dataList.add(data);
-        }
+            }
         System.out.println("Size : " + dataList.size());
         return csvCon.insertDataIntoDatabase(dataList);
+        }catch(IOException e){
+            e.printStackTrace();
+        }catch(NumberFormatException ex){
+            ex.printStackTrace();
+        }
+        return false;
+    }
+    
+    public static boolean readAndWriteCSVFileToReportDatabase(String fileName) {    
+        try{
+            FileReader filereader = new FileReader(fileName); 
+            CSVReader csvReader = new CSVReader(filereader); 
+            String[] nextRecord; 
+            ArrayList<ReportData> rdataList = new ArrayList<ReportData>();
+            while((nextRecord = csvReader.readNext()) != null){
+                System.out.println(nextRecord[0]);
+                ReportData rdata = new ReportData();
+                rdata.setSampleNumber(Integer.parseInt(nextRecord[0]));
+                rdata.setDate(nextRecord[1]);
+                rdata.setDepartment(nextRecord[2]);
+                rdata.setTests(nextRecord[3]);
+                rdata.setRequestTime(nextRecord[4]);
+                String stime = nextRecord[5];
+                if(stime.length() == 1){
+                    stime = "00:0" + stime;
+                }else if(stime.length() == 2){
+                    stime = "00:" + stime;
+                }else if(stime.length() == 3){
+                    stime = "0"+stime.substring(0, stime.length() - 2) + ":" + stime.substring(stime.length() - 2, stime.length());
+                }else{
+                    stime = stime.substring(0, stime.length() - 2) + ":" + stime.substring(stime.length() - 2, stime.length());
+                }
+                rdata.setStartTime(stime);
+                rdata.setReportedDate(nextRecord[6]);
+                String reptime = nextRecord[7];
+                if(reptime.length() == 0){
+                    reptime = "00:00" + reptime;
+                }else if(reptime.length() == 1){
+                    reptime = "00:0" + reptime;
+                }else if(reptime.length() == 2){
+                    reptime = "00:" + reptime;
+                }else if(reptime.length() == 3){
+                    reptime = "0"+reptime.substring(0, reptime.length() - 2) + ":" + reptime.substring(reptime.length() - 2, reptime.length());
+                }else{
+                    reptime = reptime.substring(0, reptime.length() - 2) + ":" + reptime.substring(reptime.length() - 2, reptime.length());
+                }
+                rdata.setReportedTime(reptime);
+                String fintime = nextRecord[8];
+                if(fintime.length() == 0){
+                    fintime = "00:00" + fintime;
+                }else if(fintime.length() == 1){
+                    fintime = "00:0" + fintime;
+                }else if(fintime.length() == 2){
+                    fintime = "00:" + fintime;
+                }else if(fintime.length() == 3){
+                    fintime = "0"+fintime.substring(0, fintime.length() - 2) + ":" + fintime.substring(fintime.length() - 2, fintime.length());
+                }else{
+                    fintime = fintime.substring(0, fintime.length() - 2) + ":" + fintime.substring(fintime.length() - 2, fintime.length());
+                }
+                rdata.setFinishedTime(fintime);
+                rdataList.add(rdata);
+            }
+        System.out.println("Size : " + rdataList.size());
+        csvReader.close();
+        return repCon.insertDataIntoDatabase(rdataList);
         }catch(IOException e){
             e.printStackTrace();
         }catch(NumberFormatException ex){
@@ -144,28 +247,14 @@ public class GUIDashboard extends javax.swing.JFrame {
         settingsBtn = new javax.swing.JPanel();
         indicator3 = new javax.swing.JPanel();
         sampleLbl2 = new javax.swing.JLabel();
+        dateTf = new javax.swing.JLabel();
         bodypnl = new javax.swing.JPanel();
         defaultpage = new javax.swing.JPanel();
         reportDash = new javax.swing.JPanel();
         graph = new javax.swing.JLabel();
-        monthrepBtn = new javax.swing.JButton();
         monthlyrepBtn = new javax.swing.JButton();
-        weekrepBtn = new javax.swing.JButton();
-        sampleDash = new javax.swing.JPanel();
-        totalSamplepanel = new javax.swing.JPanel();
-        totalsamplesLbl = new javax.swing.JLabel();
-        averageTimeLbl = new javax.swing.JLabel();
-        jPanel5 = new javax.swing.JPanel();
-        jLabel8 = new javax.swing.JLabel();
-        jLabel9 = new javax.swing.JLabel();
-        jPanel6 = new javax.swing.JPanel();
-        jLabel10 = new javax.swing.JLabel();
-        delayTf = new javax.swing.JTextField();
-        delayBtn = new javax.swing.JButton();
-        deleteBtn = new javax.swing.JButton();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        sampleTable = new javax.swing.JTable();
-        csvBtn = new javax.swing.JButton();
+        loadcsvBtn = new javax.swing.JButton();
+        delcsvBtn = new javax.swing.JButton();
         settingsDash = new javax.swing.JPanel();
         group1Tf = new javax.swing.JTextField();
         group2Tf = new javax.swing.JTextField();
@@ -191,6 +280,21 @@ public class GUIDashboard extends javax.swing.JFrame {
         jLabel11 = new javax.swing.JLabel();
         group3Tf2 = new javax.swing.JTextField();
         jLabel13 = new javax.swing.JLabel();
+        sampleDash = new javax.swing.JPanel();
+        totalSamplepanel = new javax.swing.JPanel();
+        totalsamplesLbl = new javax.swing.JLabel();
+        averageTimeLbl = new javax.swing.JLabel();
+        jPanel5 = new javax.swing.JPanel();
+        jLabel8 = new javax.swing.JLabel();
+        jLabel9 = new javax.swing.JLabel();
+        jPanel6 = new javax.swing.JPanel();
+        jLabel10 = new javax.swing.JLabel();
+        delayTf = new javax.swing.JTextField();
+        delayBtn = new javax.swing.JButton();
+        deleteBtn = new javax.swing.JButton();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        sampleTable = new javax.swing.JTable();
+        csvBtn = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Dashboard");
@@ -233,7 +337,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         });
 
         minbtn.setBackground(new java.awt.Color(4, 68, 108));
-        minbtn.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
+        minbtn.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
         minbtn.setForeground(new java.awt.Color(204, 204, 204));
         minbtn.setText("-");
         minbtn.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
@@ -277,7 +381,7 @@ public class GUIDashboard extends javax.swing.JFrame {
 
         jLabel1.setFont(new java.awt.Font("Sitka Heading", 1, 36)); // NOI18N
         jLabel1.setForeground(new java.awt.Color(8, 118, 188));
-        jLabel1.setText("Welcome to Tallaght laboratory Dashboard");
+        jLabel1.setText("Welcome to Tallaght Laboratory Dashboard");
 
         samplebtn.setBackground(new java.awt.Color(255, 255, 255));
         samplebtn.setBorder(javax.swing.BorderFactory.createEtchedBorder());
@@ -293,6 +397,8 @@ public class GUIDashboard extends javax.swing.JFrame {
                 samplebtnMouseExited(evt);
             }
         });
+
+        indicator1.setPreferredSize(new java.awt.Dimension(224, 16));
 
         javax.swing.GroupLayout indicator1Layout = new javax.swing.GroupLayout(indicator1);
         indicator1.setLayout(indicator1Layout);
@@ -316,7 +422,7 @@ public class GUIDashboard extends javax.swing.JFrame {
             .addGroup(samplebtnLayout.createSequentialGroup()
                 .addGap(63, 63, 63)
                 .addComponent(sampleLbl)
-                .addContainerGap(68, Short.MAX_VALUE))
+                .addContainerGap(72, Short.MAX_VALUE))
             .addComponent(indicator1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         samplebtnLayout.setVerticalGroup(
@@ -428,6 +534,9 @@ public class GUIDashboard extends javax.swing.JFrame {
                 .addComponent(indicator3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
+        dateTf.setFont(new java.awt.Font("Sitka Display", 1, 18)); // NOI18N
+        dateTf.setForeground(new java.awt.Color(8, 118, 188));
+
         javax.swing.GroupLayout toppnlLayout = new javax.swing.GroupLayout(toppnl);
         toppnl.setLayout(toppnlLayout);
         toppnlLayout.setHorizontalGroup(
@@ -435,30 +544,40 @@ public class GUIDashboard extends javax.swing.JFrame {
             .addGroup(toppnlLayout.createSequentialGroup()
                 .addGap(27, 27, 27)
                 .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 187, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(38, 38, 38)
                 .addGroup(toppnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(toppnlLayout.createSequentialGroup()
-                        .addComponent(samplebtn, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(reportBtn, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(settingsBtn, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jLabel1))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGap(38, 38, 38)
+                        .addGroup(toppnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(toppnlLayout.createSequentialGroup()
+                                .addComponent(samplebtn, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(reportBtn, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(settingsBtn, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jLabel1))
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, toppnlLayout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(dateTf, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap())))
         );
         toppnlLayout.setVerticalGroup(
             toppnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(toppnlLayout.createSequentialGroup()
-                .addGap(15, 15, 15)
-                .addGroup(toppnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                .addGroup(toppnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addGroup(toppnlLayout.createSequentialGroup()
+                        .addGap(15, 15, 15)
+                        .addComponent(jLabel2))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, toppnlLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(dateTf, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(jLabel1)
                         .addGap(56, 56, 56)
                         .addGroup(toppnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(reportBtn, javax.swing.GroupLayout.DEFAULT_SIZE, 70, Short.MAX_VALUE)
                             .addComponent(settingsBtn, javax.swing.GroupLayout.DEFAULT_SIZE, 70, Short.MAX_VALUE)
-                            .addComponent(samplebtn, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                    .addComponent(jLabel2))
+                            .addComponent(samplebtn, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
                 .addGap(15, 15, 15))
         );
 
@@ -481,31 +600,41 @@ public class GUIDashboard extends javax.swing.JFrame {
 
         graph.setIcon(new javax.swing.ImageIcon(getClass().getResource("/SampleMonitoringImages/graph.PNG"))); // NOI18N
 
-        monthrepBtn.setBackground(new java.awt.Color(255, 255, 255));
-        monthrepBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        monthrepBtn.setForeground(new java.awt.Color(8, 118, 188));
-        monthrepBtn.setText("Weekly Report");
-        monthrepBtn.setContentAreaFilled(false);
-        monthrepBtn.setOpaque(true);
-        monthrepBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                monthrepBtnActionPerformed(evt);
-            }
-        });
-
         monthlyrepBtn.setBackground(new java.awt.Color(255, 255, 255));
         monthlyrepBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
         monthlyrepBtn.setForeground(new java.awt.Color(8, 118, 188));
         monthlyrepBtn.setText("3 Month Report");
         monthlyrepBtn.setContentAreaFilled(false);
         monthlyrepBtn.setOpaque(true);
+        monthlyrepBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                monthlyrepBtnActionPerformed(evt);
+            }
+        });
 
-        weekrepBtn.setBackground(new java.awt.Color(255, 255, 255));
-        weekrepBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        weekrepBtn.setForeground(new java.awt.Color(8, 118, 188));
-        weekrepBtn.setText("Week Report");
-        weekrepBtn.setContentAreaFilled(false);
-        weekrepBtn.setOpaque(true);
+        loadcsvBtn.setBackground(new java.awt.Color(255, 255, 255));
+        loadcsvBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
+        loadcsvBtn.setForeground(new java.awt.Color(8, 118, 188));
+        loadcsvBtn.setText("Load csv file");
+        loadcsvBtn.setContentAreaFilled(false);
+        loadcsvBtn.setOpaque(true);
+        loadcsvBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                loadcsvBtnActionPerformed(evt);
+            }
+        });
+
+        delcsvBtn.setBackground(new java.awt.Color(255, 255, 255));
+        delcsvBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
+        delcsvBtn.setForeground(new java.awt.Color(8, 118, 188));
+        delcsvBtn.setText("Clear file");
+        delcsvBtn.setContentAreaFilled(false);
+        delcsvBtn.setOpaque(true);
+        delcsvBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                delcsvBtnActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout reportDashLayout = new javax.swing.GroupLayout(reportDash);
         reportDash.setLayout(reportDashLayout);
@@ -516,9 +645,9 @@ public class GUIDashboard extends javax.swing.JFrame {
                 .addComponent(graph)
                 .addGap(18, 18, 18)
                 .addGroup(reportDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(monthrepBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(monthlyrepBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(weekrepBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(100, Short.MAX_VALUE))
         );
         reportDashLayout.setVerticalGroup(
@@ -528,217 +657,16 @@ public class GUIDashboard extends javax.swing.JFrame {
                 .addComponent(graph)
                 .addGap(19, 19, 19))
             .addGroup(reportDashLayout.createSequentialGroup()
-                .addGap(39, 39, 39)
-                .addComponent(weekrepBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(monthrepBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGap(149, 149, 149)
                 .addComponent(monthlyrepBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(24, 24, 24))
         );
 
         bodypnl.add(reportDash, "card4");
-
-        sampleDash.setBackground(new java.awt.Color(245, 245, 245));
-
-        totalSamplepanel.setBackground(new java.awt.Color(247, 247, 247));
-
-        totalsamplesLbl.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        totalsamplesLbl.setForeground(new java.awt.Color(8, 118, 188));
-        totalsamplesLbl.setText("Total Number of Samples:");
-
-        averageTimeLbl.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        averageTimeLbl.setForeground(new java.awt.Color(8, 118, 188));
-        averageTimeLbl.setText("Average Time To Report:");
-
-        jLabel8.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        jLabel8.setText("20");
-
-        jLabel9.setFont(new java.awt.Font("Sitka Heading", 0, 11)); // NOI18N
-        jLabel9.setText("Mins");
-
-        javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
-        jPanel5.setLayout(jPanel5Layout);
-        jPanel5Layout.setHorizontalGroup(
-            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel5Layout.createSequentialGroup()
-                .addGap(8, 8, 8)
-                .addComponent(jLabel8)
-                .addGap(2, 2, 2)
-                .addComponent(jLabel9)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        jPanel5Layout.setVerticalGroup(
-            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel5Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel8)
-                    .addComponent(jLabel9))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-
-        jLabel10.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        jLabel10.setText("27");
-
-        javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
-        jPanel6.setLayout(jPanel6Layout);
-        jPanel6Layout.setHorizontalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel6Layout.createSequentialGroup()
-                .addGap(19, 19, 19)
-                .addComponent(jLabel10)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        jPanel6Layout.setVerticalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel6Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel10)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-
-        javax.swing.GroupLayout totalSamplepanelLayout = new javax.swing.GroupLayout(totalSamplepanel);
-        totalSamplepanel.setLayout(totalSamplepanelLayout);
-        totalSamplepanelLayout.setHorizontalGroup(
-            totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(totalSamplepanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(totalSamplepanelLayout.createSequentialGroup()
-                        .addComponent(totalsamplesLbl)
-                        .addGap(11, 11, 11))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, totalSamplepanelLayout.createSequentialGroup()
-                        .addComponent(averageTimeLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 207, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)))
-                .addGroup(totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(27, Short.MAX_VALUE))
-        );
-        totalSamplepanelLayout.setVerticalGroup(
-            totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, totalSamplepanelLayout.createSequentialGroup()
-                .addGroup(totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(totalSamplepanelLayout.createSequentialGroup()
-                        .addGap(23, 23, 23)
-                        .addComponent(totalsamplesLbl))
-                    .addGroup(totalSamplepanelLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel5, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(averageTimeLbl, javax.swing.GroupLayout.Alignment.TRAILING))
-                .addContainerGap())
-        );
-
-        delayTf.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        delayTf.setForeground(new java.awt.Color(8, 118, 188));
-        delayTf.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                delayTfActionPerformed(evt);
-            }
-        });
-
-        delayBtn.setBackground(new java.awt.Color(255, 255, 255));
-        delayBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        delayBtn.setForeground(new java.awt.Color(8, 118, 188));
-        delayBtn.setText("Delay Sample");
-        delayBtn.setContentAreaFilled(false);
-
-        deleteBtn.setText("Delete Database");
-        deleteBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                deleteBtnActionPerformed(evt);
-            }
-        });
-
-        sampleTable.setBackground(new java.awt.Color(247, 247, 247));
-        sampleTable.setBorder(javax.swing.BorderFactory.createCompoundBorder());
-        sampleTable.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-
-            },
-            new String [] {
-                "Sample Number", "Date", "Department", "Tests", "Start Time"
-            }
-        ) {
-            Class[] types = new Class [] {
-                java.lang.Integer.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class
-            };
-            boolean[] canEdit = new boolean [] {
-                false, false, false, false, false
-            };
-
-            public Class getColumnClass(int columnIndex) {
-                return types [columnIndex];
-            }
-
-            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
-            }
-        });
-        sampleTable.setGridColor(new java.awt.Color(242, 242, 242));
-        sampleTable.getTableHeader().setReorderingAllowed(false);
-        sampleTable.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                sampleTableMouseClicked(evt);
-            }
-        });
-        jScrollPane1.setViewportView(sampleTable);
-
-        csvBtn.setText("Load CSV");
-        csvBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                csvBtnActionPerformed(evt);
-            }
-        });
-
-        javax.swing.GroupLayout sampleDashLayout = new javax.swing.GroupLayout(sampleDash);
-        sampleDash.setLayout(sampleDashLayout);
-        sampleDashLayout.setHorizontalGroup(
-            sampleDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(sampleDashLayout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 523, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addGroup(sampleDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(totalSamplepanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(sampleDashLayout.createSequentialGroup()
-                        .addGap(8, 8, 8)
-                        .addComponent(delayTf, javax.swing.GroupLayout.PREFERRED_SIZE, 58, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(delayBtn))
-                    .addGroup(sampleDashLayout.createSequentialGroup()
-                        .addGap(31, 31, 31)
-                        .addGroup(sampleDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(csvBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(deleteBtn, javax.swing.GroupLayout.DEFAULT_SIZE, 134, Short.MAX_VALUE))))
-                .addContainerGap(132, Short.MAX_VALUE))
-        );
-        sampleDashLayout.setVerticalGroup(
-            sampleDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(sampleDashLayout.createSequentialGroup()
-                .addGroup(sampleDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(sampleDashLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(totalSamplepanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addGroup(sampleDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(delayTf, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(delayBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addGap(87, 87, 87)
-                        .addComponent(deleteBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(27, 27, 27)
-                        .addComponent(csvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 62, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(sampleDashLayout.createSequentialGroup()
-                        .addGap(30, 30, 30)
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 394, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(71, Short.MAX_VALUE))
-        );
-
-        bodypnl.add(sampleDash, "card3");
 
         group1Tf.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
         group1Tf.setText("GLUC, DP, RNL");
@@ -751,7 +679,7 @@ public class GUIDashboard extends javax.swing.JFrame {
 
         jLabel3.setFont(new java.awt.Font("Sitka Small", 0, 14)); // NOI18N
         jLabel3.setForeground(new java.awt.Color(8, 118, 188));
-        jLabel3.setText("Test Group 1(Moderate Priority)");
+        jLabel3.setText("Test Group 1 (Moderate Priority)");
 
         jLabel4.setFont(new java.awt.Font("Sitka Small", 0, 14)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(8, 118, 188));
@@ -954,6 +882,211 @@ public class GUIDashboard extends javax.swing.JFrame {
 
         bodypnl.add(settingsDash, "card5");
 
+        sampleDash.setBackground(new java.awt.Color(245, 245, 245));
+
+        totalSamplepanel.setBackground(new java.awt.Color(247, 247, 247));
+
+        totalsamplesLbl.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
+        totalsamplesLbl.setForeground(new java.awt.Color(8, 118, 188));
+        totalsamplesLbl.setText("Total Number of Samples:");
+
+        averageTimeLbl.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
+        averageTimeLbl.setForeground(new java.awt.Color(8, 118, 188));
+        averageTimeLbl.setText("Average Time To Report:");
+
+        jLabel8.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
+        jLabel8.setText("20");
+
+        jLabel9.setFont(new java.awt.Font("Sitka Heading", 0, 11)); // NOI18N
+        jLabel9.setText("Mins");
+
+        javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
+        jPanel5.setLayout(jPanel5Layout);
+        jPanel5Layout.setHorizontalGroup(
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel5Layout.createSequentialGroup()
+                .addGap(8, 8, 8)
+                .addComponent(jLabel8)
+                .addGap(2, 2, 2)
+                .addComponent(jLabel9)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel5Layout.setVerticalGroup(
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel5Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel8)
+                    .addComponent(jLabel9))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        jLabel10.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
+        jLabel10.setText("27");
+
+        javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
+        jPanel6.setLayout(jPanel6Layout);
+        jPanel6Layout.setHorizontalGroup(
+            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addGap(19, 19, 19)
+                .addComponent(jLabel10)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel6Layout.setVerticalGroup(
+            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel10)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        javax.swing.GroupLayout totalSamplepanelLayout = new javax.swing.GroupLayout(totalSamplepanel);
+        totalSamplepanel.setLayout(totalSamplepanelLayout);
+        totalSamplepanelLayout.setHorizontalGroup(
+            totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(totalSamplepanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(totalSamplepanelLayout.createSequentialGroup()
+                        .addComponent(totalsamplesLbl)
+                        .addGap(11, 11, 11))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, totalSamplepanelLayout.createSequentialGroup()
+                        .addComponent(averageTimeLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 207, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)))
+                .addGroup(totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(27, Short.MAX_VALUE))
+        );
+        totalSamplepanelLayout.setVerticalGroup(
+            totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, totalSamplepanelLayout.createSequentialGroup()
+                .addGroup(totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(totalSamplepanelLayout.createSequentialGroup()
+                        .addGap(23, 23, 23)
+                        .addComponent(totalsamplesLbl))
+                    .addGroup(totalSamplepanelLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jPanel5, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(averageTimeLbl, javax.swing.GroupLayout.Alignment.TRAILING))
+                .addContainerGap())
+        );
+
+        delayTf.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        delayTf.setForeground(new java.awt.Color(8, 118, 188));
+        delayTf.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                delayTfActionPerformed(evt);
+            }
+        });
+
+        delayBtn.setBackground(new java.awt.Color(255, 255, 255));
+        delayBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
+        delayBtn.setForeground(new java.awt.Color(8, 118, 188));
+        delayBtn.setText("Delay Sample");
+        delayBtn.setContentAreaFilled(false);
+
+        deleteBtn.setText("Delete Database");
+        deleteBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                deleteBtnActionPerformed(evt);
+            }
+        });
+
+        jScrollPane1.setBorder(null);
+
+        sampleTable.setBackground(new java.awt.Color(247, 247, 247));
+        sampleTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Sample Number", "Date", "Department", "Tests", "Request Time", "Start Time"
+            }
+        ) {
+            Class[] types = new Class [] {
+                java.lang.Integer.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class
+            };
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false, false
+            };
+
+            public Class getColumnClass(int columnIndex) {
+                return types [columnIndex];
+            }
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        sampleTable.setFocusable(false);
+        sampleTable.setGridColor(new java.awt.Color(242, 242, 242));
+        sampleTable.setIntercellSpacing(new java.awt.Dimension(0, 0));
+        sampleTable.setRowHeight(25);
+        sampleTable.setShowVerticalLines(false);
+        sampleTable.getTableHeader().setReorderingAllowed(false);
+        sampleTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                sampleTableMouseClicked(evt);
+            }
+        });
+        jScrollPane1.setViewportView(sampleTable);
+
+        csvBtn.setText("Load CSV");
+        csvBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                csvBtnActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout sampleDashLayout = new javax.swing.GroupLayout(sampleDash);
+        sampleDash.setLayout(sampleDashLayout);
+        sampleDashLayout.setHorizontalGroup(
+            sampleDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(sampleDashLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 626, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 27, Short.MAX_VALUE)
+                .addGroup(sampleDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(totalSamplepanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(sampleDashLayout.createSequentialGroup()
+                        .addGap(8, 8, 8)
+                        .addComponent(delayTf, javax.swing.GroupLayout.PREFERRED_SIZE, 58, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(delayBtn))
+                    .addGroup(sampleDashLayout.createSequentialGroup()
+                        .addGap(31, 31, 31)
+                        .addGroup(sampleDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(csvBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(deleteBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 134, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addGap(20, 20, 20))
+        );
+        sampleDashLayout.setVerticalGroup(
+            sampleDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(sampleDashLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(totalSamplepanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addGroup(sampleDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(delayTf, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(delayBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(87, 87, 87)
+                .addComponent(deleteBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(27, 27, 27)
+                .addComponent(csvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 62, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(81, Short.MAX_VALUE))
+            .addGroup(sampleDashLayout.createSequentialGroup()
+                .addGap(30, 30, 30)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 435, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        bodypnl.add(sampleDash, "card3");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -969,7 +1102,7 @@ public class GUIDashboard extends javax.swing.JFrame {
                 .addGap(0, 0, 0)
                 .addComponent(toppnl, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(0, 0, 0)
-                .addComponent(bodypnl, javax.swing.GroupLayout.DEFAULT_SIZE, 495, Short.MAX_VALUE))
+                .addComponent(bodypnl, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         setSize(new java.awt.Dimension(1000, 750));
@@ -1077,14 +1210,11 @@ public class GUIDashboard extends javax.swing.JFrame {
         settingsBtn.setBackground(new Color(255,255,255));
     }//GEN-LAST:event_settingsBtnMouseExited
 
-    private void monthrepBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_monthrepBtnActionPerformed
-    }//GEN-LAST:event_monthrepBtnActionPerformed
-
     private void deleteBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deleteBtnActionPerformed
         int i = csvCon.deleteAllFromDatabase();
-        if (i > 0) {
+        if(i > 0){
             JOptionPane.showMessageDialog(this, "Database has no record now.");
-        } else {
+        }else{
             JOptionPane.showMessageDialog(this, "Database is already empty Or Error deleting data.");
 	}
 	searchAndFillTable();
@@ -1099,8 +1229,9 @@ public class GUIDashboard extends javax.swing.JFrame {
         try{
             int row = sampleTable.getSelectedRow();
             String table_click=(sampleTable.getModel().getValueAt(row, 0).toString());
+            sampleNum=table_click;
             String sql ="select * from csv_table where SampleNumber ='"+table_click+"' ";
-            prep=conn.prepareStatement(sql);
+            prep=csvConn.prepareStatement(sql);
             rs=prep.executeQuery();
             if(rs.next()){
                 String add = rs.getString("StartTime");
@@ -1114,6 +1245,31 @@ public class GUIDashboard extends javax.swing.JFrame {
     private void delayTfActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_delayTfActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_delayTfActionPerformed
+
+    private void loadcsvBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadcsvBtnActionPerformed
+        JFileChooser fc = new JFileChooser();
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("*.csv", "csv");
+        fc.setFileFilter(filter);
+        int i = fc.showOpenDialog(null);
+        if (i == JFileChooser.APPROVE_OPTION) {
+            File f = fc.getSelectedFile();
+            String filepath = f.getPath();
+            readAndWriteCSVFileToReportDatabase(filepath);
+        }
+    }//GEN-LAST:event_loadcsvBtnActionPerformed
+
+    private void monthlyrepBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_monthlyrepBtnActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_monthlyrepBtnActionPerformed
+
+    private void delcsvBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_delcsvBtnActionPerformed
+        int i = repCon.deleteAllFromDatabase();
+        if(i > 0){
+            JOptionPane.showMessageDialog(this, "The file has been removed");
+        }else{
+            JOptionPane.showMessageDialog(this, "There is currently no file");
+	}
+    }//GEN-LAST:event_delcsvBtnActionPerformed
 
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
@@ -1151,9 +1307,11 @@ public class GUIDashboard extends javax.swing.JFrame {
     private javax.swing.JLabel averageTimeLbl;
     private javax.swing.JPanel bodypnl;
     private javax.swing.JButton csvBtn;
+    private javax.swing.JLabel dateTf;
     private javax.swing.JPanel defaultpage;
     private javax.swing.JButton delayBtn;
     private javax.swing.JTextField delayTf;
+    private javax.swing.JButton delcsvBtn;
     private javax.swing.JButton deleteBtn;
     private javax.swing.JButton exitbtn;
     private javax.swing.JLabel graph;
@@ -1179,9 +1337,9 @@ public class GUIDashboard extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JButton loadcsvBtn;
     private javax.swing.JButton minbtn;
     private javax.swing.JButton monthlyrepBtn;
-    private javax.swing.JButton monthrepBtn;
     private javax.swing.JPanel pnlHead;
     private javax.swing.JPanel reportBtn;
     private javax.swing.JPanel reportDash;
@@ -1208,7 +1366,5 @@ public class GUIDashboard extends javax.swing.JFrame {
     private javax.swing.JPanel toppnl;
     private javax.swing.JPanel totalSamplepanel;
     private javax.swing.JLabel totalsamplesLbl;
-    private javax.swing.JButton weekrepBtn;
     // End of variables declaration//GEN-END:variables
-
 }
