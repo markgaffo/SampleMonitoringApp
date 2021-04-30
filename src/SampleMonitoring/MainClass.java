@@ -59,8 +59,7 @@ public class MainClass {
                 System.out.println("Sample time is greater than system");
             }else{
                 System.out.println("Sample time is Less than system");
-            }
-            
+            }  
         }
         //getting mins and hours of sample 1 then checking that vrs the current system time
         String sampleTime1 = timeList.get(0);

@@ -29,10 +29,10 @@ public class CsvDBConnection{
     }
 
     public boolean insertDataIntoDatabase(ArrayList<CsvData> dataList){
-        //con=CsvDBConnection();
+        con=CsvDBConnection();
         
         try{
-            con.setAutoCommit(false);
+            //con.setAutoCommit(false);
             for(CsvData data : dataList){
                 String query = "INSERT INTO csv_table (SampleNumber, Date, Department, Tests, RequestTime, "
                     + " StartTime ) "
