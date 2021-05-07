@@ -27,6 +27,7 @@ import java.awt.event.KeyEvent;
 import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import org.jfree.chart.ChartFactory;
@@ -53,12 +54,18 @@ import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.chart.renderer.category.StandardBarPainter;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
-
+import SampleMonitoring.CSVFilePath;
+import SampleMonitoring.ReadWrite;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.text.DateFormat;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class GUIDashboard extends javax.swing.JFrame {
 
-    static CsvDBConnection csvCon = new CsvDBConnection();
-    static ReportDBConnection repCon = new ReportDBConnection();
+    public static CsvDBConnection csvCon = new CsvDBConnection();
+    public static ReportDBConnection repCon = new ReportDBConnection();
     DefaultTableModel model;
 
     Connection csvConn = null;
@@ -68,19 +75,37 @@ public class GUIDashboard extends javax.swing.JFrame {
     
     int xMouse;
     int yMouse;
-    public static String csvFile = "/Users/Mark/Dropbox/Final year/Project/netbeans projects/SampleMonitoringApp/ProjectTabledata.csv";
+    public static String csvFile;
     public static String line ="";
     public static String sampleNum;
     List<CsvData> lstRecords = null;
     
+    Timer timer = new Timer();
+    TimerTask myTask = new TimerTask() {
+        @Override
+        public void run() {
+            System.out.println("One minute has passed");
+
+            try{
+                GUIDashboard.csvCon.compareCsvToDatabase();
+                UpdateTable();
+                System.out.print("UPDATED TABLE");
+
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+
+        }
+    };
+    
     public GUIDashboard() {
         initComponents();
         clock();
-        csvConn=CsvDBConnection.CsvDBConnection();
+
         UpdateTable();   
         setTableParmas();
         renderChart();
-
+        timer.schedule(myTask, 10000, 60000);
         
     }
     
@@ -156,9 +181,26 @@ public class GUIDashboard extends javax.swing.JFrame {
         }catch(ParseException ex){
             Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
         }
-
     }
+    
     private void UpdateTable(){
+        if(csvConn != null ){
+            try {
+                if(csvConn.isClosed()){
+                    csvConn=CsvDBConnection.CsvDBConnection();
+                }
+                else{
+                    csvConn.close();
+                    csvConn=CsvDBConnection.CsvDBConnection();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        else {
+            csvConn=CsvDBConnection.CsvDBConnection();
+        }
+        
         try {
             String sql = "select * from csv_table";
             prep=csvConn.prepareStatement(sql);
@@ -171,7 +213,7 @@ public class GUIDashboard extends javax.swing.JFrame {
                 rs.close();
                 prep.close();
             }catch(Exception e){
-                
+                JOptionPane.showMessageDialog(null, e);
             }
         }
         try {
@@ -189,23 +231,12 @@ public class GUIDashboard extends javax.swing.JFrame {
                 rs.close();
                 prep.close();
             }catch(Exception e){
-                
+                JOptionPane.showMessageDialog(null, e);
             }
         }
     }
 
-//    public CategoryDataset createDataset(){
-//        final double[][] data = new double[][]{
-//            {1.0, 3.0, 4.0, 5.0, 5.0, 7.0, 7.0, 8.0},
-//            {5.0, 7.0, 6.0, 8.0, 4.0, 4.0, 2.0, 1.0},
-//            {3.0, 4.0, 5.0, 8.0, 8.0, 4.0, 5.0, 5.0}
-//        };
-//        final CategoryDataset dataset = DatasetUtilities.createCategoryDataset(
-//            "Time", "Type", data
-//        );
-//        return dataset;
-//    }
-//    
+    
     private void renderChart(){
       final CategoryDataset dataset1 = createDataset1();
 
@@ -280,6 +311,12 @@ public class GUIDashboard extends javax.swing.JFrame {
 
         // column keys...
         //for loop for date columns
+        //if (lstRecords != null) {
+        //  for(int i = 0; i < lstRecords.size(); i++){
+        //      dto = lstRecords.get(i);
+        //      String Dates = dto.getDate();
+        //  }
+        //}
         final String category1 = "22/04";
         final String category2 = "23/04";
         final String category3 = "24/04";
@@ -296,6 +333,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         
         //for loop for each day value
+        //loop 1st and 3rd value
         dataset.addValue(10, series1, category1);
         dataset.addValue(4.1, series1, category2);
         dataset.addValue(3.6, series1, category3);
@@ -346,36 +384,64 @@ public class GUIDashboard extends javax.swing.JFrame {
     }
     
     
-    public void searchAndFillTable() {
-        lstRecords = csvCon.getDataFromDatabase();
-        loadDataInTable();
-    }   
-    public void loadDataInTable() {
-        model = (DefaultTableModel)sampleTable.getModel();
-        model.setRowCount(0);
-        CsvData dto;
-        if (lstRecords != null) {
-            model.setRowCount(lstRecords.size());
-            for (int i = 0; i < lstRecords.size(); i++) {
-                dto = lstRecords.get(i);
-                model.setValueAt(dto.getSampleNumber(), i, 0);
-                model.setValueAt(dto.getDate(), i, 1);
-                model.setValueAt(dto.getDepartment(), i, 2);
-                model.setValueAt(dto.getTests(), i, 3);
-                model.setValueAt(dto.getRequesttime(), i, 4);
-                model.setValueAt(dto.getStarttime(), i, 5);
-            }
-        }
-    }
 
-    public static boolean readAndWriteCSVFileToDatabase() {    
+    public static boolean readAndWriteCSVFileToDatabase() throws SQLException {    
         try{
+            csvFile = CSVFilePath.path;
+            System.out.println("reading from " + csvFile);
             FileReader filereader = new FileReader(csvFile); 
             CSVReader csvReader = new CSVReader(filereader); 
             String[] nextRecord; 
             ArrayList<CsvData> dataList = new ArrayList<CsvData>();
+            
             while((nextRecord = csvReader.readNext()) != null){
-                //System.out.println(nextRecord[3]);
+                CsvData data = new CsvData();
+                data.setSampleNumber(Integer.parseInt(nextRecord[0]));
+                data.setDate(nextRecord[1]);
+                data.setDepartment(nextRecord[2]);
+                data.setTests(nextRecord[3]);
+                data.setRequesttime(nextRecord[4]);
+                String time = nextRecord[5];
+                if(time.length() == 1){
+                    time = "00:0" + time;
+                }else if(time.length() == 2){
+                    time = "00:" + time;
+                }else if(time.length() == 3){
+                    time = "0"+time.substring(0, time.length() - 2) + ":" + time.substring(time.length() - 2, time.length());
+                }else{
+                    time = time.substring(0, time.length() - 2) + ":" + time.substring(time.length() - 2, time.length());
+                }
+                data.setStarttime(time);
+                dataList.add(data);
+            }
+        System.out.println("Size : " + dataList.size());
+        return csvCon.insertDataIntoDatabase(dataList);
+        }catch(IOException e){
+            e.printStackTrace();
+        }catch(NumberFormatException ex){
+            ex.printStackTrace();
+        } 
+        return false;
+    }
+    
+    public static ArrayList<CsvData> readAndReturnFromCSV() throws IOException{
+        ArrayList<CsvData> dataList = new ArrayList<CsvData>();
+        FileReader filereader;
+        CSVReader csvReader = null;
+        csvFile = CSVFilePath.path;
+
+        try{
+        
+            filereader = new FileReader(csvFile); 
+            csvReader = new CSVReader(filereader); 
+
+        }catch(FileNotFoundException e){
+            e.printStackTrace();
+        }
+            System.out.println("reading from " + csvFile);
+            String[] nextRecord; 
+           
+            while((nextRecord = csvReader.readNext()) != null){
                 CsvData data = new CsvData();
                 data.setSampleNumber(Integer.parseInt(nextRecord[0]));
                 data.setDate(nextRecord[1]);
@@ -395,14 +461,9 @@ public class GUIDashboard extends javax.swing.JFrame {
             data.setStarttime(time);
             dataList.add(data);
             }
-        System.out.println("Size : " + dataList.size());
-        return csvCon.insertDataIntoDatabase(dataList);
-        }catch(IOException e){
-            e.printStackTrace();
-        }catch(NumberFormatException ex){
-            ex.printStackTrace();
-        }
-        return false;
+//        System.out.println("Size : " + dataList.size());
+
+        return dataList;
     }
     
     public static boolean readAndWriteCSVFileToReportDatabase(String fileName) {    
@@ -415,10 +476,14 @@ public class GUIDashboard extends javax.swing.JFrame {
                 System.out.println(nextRecord[0]);
                 ReportData rdata = new ReportData();
                 rdata.setSampleNumber(Integer.parseInt(nextRecord[0]));
-                rdata.setDate(nextRecord[1]);
+                //add year
+                String sdate = nextRecord[1];
+                sdate = sdate.substring(0, sdate.length()-2)+ "20" + sdate.substring(sdate.length()-2, sdate.length());
+                rdata.setDate(sdate);
                 rdata.setDepartment(nextRecord[2]);
                 rdata.setTests(nextRecord[3]);
                 rdata.setRequestTime(nextRecord[4]);
+                //add time
                 String stime = nextRecord[5];
                 if(stime.length() == 1){
                     stime = "00:0" + stime;
@@ -430,7 +495,11 @@ public class GUIDashboard extends javax.swing.JFrame {
                     stime = stime.substring(0, stime.length() - 2) + ":" + stime.substring(stime.length() - 2, stime.length());
                 }
                 rdata.setStartTime(stime);
-                rdata.setReportedDate(nextRecord[6]);
+                //add year
+                String rdate = nextRecord[6];
+                rdate = rdate.substring(0, rdate.length()-2)+ "20" + rdate.substring(rdate.length()-2, rdate.length());
+                rdata.setReportedDate(rdate);
+                //add time
                 String reptime = nextRecord[7];
                 if(reptime.length() == 0){
                     reptime = "00:00" + reptime;
@@ -494,10 +563,15 @@ public class GUIDashboard extends javax.swing.JFrame {
         bodypnl = new javax.swing.JPanel();
         defaultpage = new javax.swing.JPanel();
         reportDash = new javax.swing.JPanel();
-        monthlyrepBtn = new javax.swing.JButton();
         loadcsvBtn = new javax.swing.JButton();
         delcsvBtn = new javax.swing.JButton();
         chartPanel = new javax.swing.JPanel();
+        dateSelect = new javax.swing.JPanel();
+        jLabel16 = new javax.swing.JLabel();
+        jLabel15 = new javax.swing.JLabel();
+        dateToTf = new com.toedter.calendar.JDateChooser();
+        dateFromTf = new com.toedter.calendar.JDateChooser();
+        dateApplyBtn = new javax.swing.JButton();
         settingsDash = new javax.swing.JPanel();
         testsGroup1Tf = new javax.swing.JTextField();
         testsGroup2Tf = new javax.swing.JTextField();
@@ -514,19 +588,19 @@ public class GUIDashboard extends javax.swing.JFrame {
         screenalert1Box2 = new javax.swing.JCheckBox();
         screenalert2Box2 = new javax.swing.JCheckBox();
         screenalert3Box2 = new javax.swing.JCheckBox();
-        applyBtn = new javax.swing.JButton();
+        setCsvPathBtn = new javax.swing.JButton();
         timeGroup1Tf = new javax.swing.JTextField();
         timeGroup2Tf = new javax.swing.JTextField();
         timeGroup3Tf = new javax.swing.JTextField();
         jLabel6 = new javax.swing.JLabel();
         jLabel7 = new javax.swing.JLabel();
         jLabel11 = new javax.swing.JLabel();
-        csvFilePathTf = new javax.swing.JTextField();
         jLabel13 = new javax.swing.JLabel();
         jLabel10 = new javax.swing.JLabel();
         jLabel12 = new javax.swing.JLabel();
         jLabel14 = new javax.swing.JLabel();
         defaultAlertTimeTf = new javax.swing.JTextField();
+        applyBtn1 = new javax.swing.JButton();
         sampleDash = new javax.swing.JPanel();
         totalSamplepanel = new javax.swing.JPanel();
         totalsamplesLbl = new javax.swing.JLabel();
@@ -857,22 +931,10 @@ public class GUIDashboard extends javax.swing.JFrame {
         );
         defaultpageLayout.setVerticalGroup(
             defaultpageLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 481, Short.MAX_VALUE)
+            .addGap(0, 503, Short.MAX_VALUE)
         );
 
         bodypnl.add(defaultpage, "card2");
-
-        monthlyrepBtn.setBackground(new java.awt.Color(255, 255, 255));
-        monthlyrepBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        monthlyrepBtn.setForeground(new java.awt.Color(8, 118, 188));
-        monthlyrepBtn.setText("3 Month Report");
-        monthlyrepBtn.setContentAreaFilled(false);
-        monthlyrepBtn.setOpaque(true);
-        monthlyrepBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                monthlyrepBtnActionPerformed(evt);
-            }
-        });
 
         loadcsvBtn.setBackground(new java.awt.Color(255, 255, 255));
         loadcsvBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
@@ -900,6 +962,56 @@ public class GUIDashboard extends javax.swing.JFrame {
 
         chartPanel.setLayout(new java.awt.BorderLayout());
 
+        jLabel16.setText("To:");
+
+        jLabel15.setText("From:");
+
+        dateToTf.setDateFormatString("dd/MM/yyyy");
+
+        dateFromTf.setDateFormatString("dd/MM/yyyy");
+
+        dateApplyBtn.setBackground(new java.awt.Color(255, 255, 255));
+        dateApplyBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
+        dateApplyBtn.setForeground(new java.awt.Color(8, 118, 188));
+        dateApplyBtn.setText("Apply");
+        dateApplyBtn.setContentAreaFilled(false);
+        dateApplyBtn.setOpaque(true);
+        dateApplyBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                dateApplyBtnActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout dateSelectLayout = new javax.swing.GroupLayout(dateSelect);
+        dateSelect.setLayout(dateSelectLayout);
+        dateSelectLayout.setHorizontalGroup(
+            dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(dateSelectLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(dateApplyBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabel15)
+                    .addComponent(jLabel16)
+                    .addComponent(dateToTf, javax.swing.GroupLayout.DEFAULT_SIZE, 118, Short.MAX_VALUE)
+                    .addComponent(dateFromTf, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+        dateSelectLayout.setVerticalGroup(
+            dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(dateSelectLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel15)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(dateFromTf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(2, 2, 2)
+                .addComponent(jLabel16)
+                .addGap(2, 2, 2)
+                .addComponent(dateToTf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(dateApplyBtn)
+                .addContainerGap())
+        );
+
         javax.swing.GroupLayout reportDashLayout = new javax.swing.GroupLayout(reportDash);
         reportDash.setLayout(reportDashLayout);
         reportDashLayout.setHorizontalGroup(
@@ -907,23 +1019,28 @@ public class GUIDashboard extends javax.swing.JFrame {
             .addGroup(reportDashLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(chartPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 781, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(31, 31, 31)
                 .addGroup(reportDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(monthlyrepBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(18, Short.MAX_VALUE))
+                    .addGroup(reportDashLayout.createSequentialGroup()
+                        .addGap(31, 31, 31)
+                        .addGroup(reportDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addContainerGap(18, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, reportDashLayout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(dateSelect, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(28, 28, 28))))
         );
         reportDashLayout.setVerticalGroup(
             reportDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(reportDashLayout.createSequentialGroup()
-                .addGap(149, 149, 149)
-                .addComponent(monthlyrepBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 150, Short.MAX_VALUE)
+                .addGap(20, 20, 20)
+                .addComponent(dateSelect, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGap(194, 194, 194)
                 .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(24, 24, 24))
+                .addGap(36, 36, 36))
             .addGroup(reportDashLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(chartPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -1029,18 +1146,18 @@ public class GUIDashboard extends javax.swing.JFrame {
         screenalert3Box2.setPreferredSize(new java.awt.Dimension(103, 27));
         settingsDash.add(screenalert3Box2, new org.netbeans.lib.awtextra.AbsoluteConstraints(800, 280, -1, 20));
 
-        applyBtn.setBackground(new java.awt.Color(255, 255, 255));
-        applyBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        applyBtn.setForeground(new java.awt.Color(8, 118, 188));
-        applyBtn.setText("Apply Changes");
-        applyBtn.setContentAreaFilled(false);
-        applyBtn.setOpaque(true);
-        applyBtn.addActionListener(new java.awt.event.ActionListener() {
+        setCsvPathBtn.setBackground(new java.awt.Color(255, 255, 255));
+        setCsvPathBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
+        setCsvPathBtn.setForeground(new java.awt.Color(8, 118, 188));
+        setCsvPathBtn.setText("Set CSV file Path");
+        setCsvPathBtn.setContentAreaFilled(false);
+        setCsvPathBtn.setOpaque(true);
+        setCsvPathBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                applyBtnActionPerformed(evt);
+                setCsvPathBtnActionPerformed(evt);
             }
         });
-        settingsDash.add(applyBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(820, 420, -1, -1));
+        settingsDash.add(setCsvPathBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 420, 280, -1));
 
         timeGroup1Tf.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
         timeGroup1Tf.setText("30");
@@ -1069,10 +1186,6 @@ public class GUIDashboard extends javax.swing.JFrame {
         jLabel11.setText("Mins");
         settingsDash.add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(460, 200, -1, -1));
 
-        csvFilePathTf.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
-        csvFilePathTf.setText("/Users/Mark/Dropbox/Final year/Project/csvFiles/SampleData.csv");
-        settingsDash.add(csvFilePathTf, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 420, 483, 34));
-
         jLabel13.setFont(new java.awt.Font("Sitka Small", 0, 14)); // NOI18N
         jLabel13.setForeground(new java.awt.Color(8, 118, 188));
         jLabel13.setText("Test Group 3 (Urgent)");
@@ -1096,6 +1209,19 @@ public class GUIDashboard extends javax.swing.JFrame {
         defaultAlertTimeTf.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
         defaultAlertTimeTf.setText("40");
         settingsDash.add(defaultAlertTimeTf, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 334, -1, 30));
+
+        applyBtn1.setBackground(new java.awt.Color(255, 255, 255));
+        applyBtn1.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
+        applyBtn1.setForeground(new java.awt.Color(8, 118, 188));
+        applyBtn1.setText("Apply Changes");
+        applyBtn1.setContentAreaFilled(false);
+        applyBtn1.setOpaque(true);
+        applyBtn1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                applyBtn1ActionPerformed(evt);
+            }
+        });
+        settingsDash.add(applyBtn1, new org.netbeans.lib.awtextra.AbsoluteConstraints(820, 420, -1, -1));
 
         bodypnl.add(settingsDash, "card5");
 
@@ -1375,7 +1501,7 @@ public class GUIDashboard extends javax.swing.JFrame {
                             .addComponent(csvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(deleteBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGap(22, 22, 22)))
-                .addContainerGap(16, Short.MAX_VALUE))
+                .addContainerGap(38, Short.MAX_VALUE))
         );
 
         bodypnl.add(sampleDash, "card3");
@@ -1505,21 +1631,47 @@ public class GUIDashboard extends javax.swing.JFrame {
     }//GEN-LAST:event_settingsBtnMouseExited
 
     private void deleteBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deleteBtnActionPerformed
-        int i = csvCon.deleteAllFromDatabase();
-        if(i > 0){
-            JOptionPane.showMessageDialog(this, "Database has no record now.");
-        }else{
-            JOptionPane.showMessageDialog(this, "Database is already empty Or Error deleting data.");
-	}
-	searchAndFillTable();
+        try {                                          
+            int i = csvCon.deleteAllFromDatabase();
+            if(i == 0){
+                JOptionPane.showMessageDialog(this, "Database has no record now.");
+            }else{
+                JOptionPane.showMessageDialog(this, "Database is already empty Or Error deleting data.");
+            }
+            UpdateTable();
+            
+        }catch(SQLException ex){
+            Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }//GEN-LAST:event_deleteBtnActionPerformed
 
     private void csvBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_csvBtnActionPerformed
-        readAndWriteCSVFileToDatabase();
+        try {
+            readAndWriteCSVFileToDatabase();
+        } catch (SQLException ex) {
+            Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
+        }
         UpdateTable();
     }//GEN-LAST:event_csvBtnActionPerformed
 
     private void sampleTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sampleTableMouseClicked
+        if(csvConn != null ){
+            try {
+                if(csvConn.isClosed()){
+                    csvConn=CsvDBConnection.CsvDBConnection();
+                }
+                else{
+                    csvConn.close();
+                    csvConn=CsvDBConnection.CsvDBConnection();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        else {
+            csvConn=CsvDBConnection.CsvDBConnection();
+        }
+        
         try{
             int row = sampleTable.getSelectedRow();
             String table_click=(sampleTable.getModel().getValueAt(row, 0).toString());
@@ -1538,6 +1690,13 @@ public class GUIDashboard extends javax.swing.JFrame {
             } 
         }catch(Exception e){
             JOptionPane.showMessageDialog(null, e);
+        }finally{
+            try{
+                rs.close();
+                prep.close();
+            }catch(Exception e){
+                e.printStackTrace();
+            }
         }
     }//GEN-LAST:event_sampleTableMouseClicked
 
@@ -1557,10 +1716,6 @@ public class GUIDashboard extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_loadcsvBtnActionPerformed
 
-    private void monthlyrepBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_monthlyrepBtnActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_monthlyrepBtnActionPerformed
-
     private void delcsvBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_delcsvBtnActionPerformed
         int i = repCon.deleteAllFromDatabase();
         if(i > 0){
@@ -1575,6 +1730,23 @@ public class GUIDashboard extends javax.swing.JFrame {
     }//GEN-LAST:event_sampleNumTableTfActionPerformed
 
     private void delayBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_delayBtnActionPerformed
+        if(csvConn != null ){
+            try {
+                if(csvConn.isClosed()){
+                    csvConn=CsvDBConnection.CsvDBConnection();
+                }
+                else{
+                    csvConn.close();
+                    csvConn=CsvDBConnection.CsvDBConnection();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        else {
+            csvConn=CsvDBConnection.CsvDBConnection();
+        }
+        
         try{
             String samp = sampleNumTableTf.getText();
             String time = delayTf.getText();
@@ -1583,9 +1755,17 @@ public class GUIDashboard extends javax.swing.JFrame {
             prep=csvConn.prepareStatement(sql);
             prep.execute();
             JOptionPane.showMessageDialog(null, "Start time updated");
+            
         }catch(Exception e){
             JOptionPane.showMessageDialog(null, e);
+        }finally{
+            try{
+                prep.close();
+            }catch(Exception e){
+                e.printStackTrace();
+            }
         }
+        
         UpdateTable();
     }//GEN-LAST:event_delayBtnActionPerformed
 
@@ -1613,13 +1793,33 @@ public class GUIDashboard extends javax.swing.JFrame {
  
     }//GEN-LAST:event_sampleTableKeyReleased
 
-    private void applyBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_applyBtnActionPerformed
+    private void setCsvPathBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_setCsvPathBtnActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_applyBtnActionPerformed
+        JFileChooser fc = new JFileChooser();
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("*.csv", "csv");
+        fc.setFileFilter(filter);
+        int i = fc.showOpenDialog(null);
+
+        if (i == JFileChooser.APPROVE_OPTION) {
+            File f = fc.getSelectedFile();
+            String filepath = f.getPath();
+            setCsvPathBtn.setName(filepath);
+        }
+    }//GEN-LAST:event_setCsvPathBtnActionPerformed
 
     private void screenalert1Box1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_screenalert1Box1ActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_screenalert1Box1ActionPerformed
+
+    private void dateApplyBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_dateApplyBtnActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_dateApplyBtnActionPerformed
+
+    private void applyBtn1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_applyBtn1ActionPerformed
+        CSVFilePath.path = setCsvPathBtn.getName();
+        System.out.println(CSVFilePath.path);
+        ReadWrite.writeFile();
+    }//GEN-LAST:event_applyBtn1ActionPerformed
 
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
@@ -1653,13 +1853,16 @@ public class GUIDashboard extends javax.swing.JFrame {
         });
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton applyBtn;
+    private javax.swing.JButton applyBtn1;
     private javax.swing.JLabel averageTimeLbl;
     private javax.swing.JPanel bodypnl;
     private javax.swing.JPanel chartPanel;
     private javax.swing.JButton csvBtn;
-    private javax.swing.JTextField csvFilePathTf;
+    private javax.swing.JButton dateApplyBtn;
+    private com.toedter.calendar.JDateChooser dateFromTf;
+    private javax.swing.JPanel dateSelect;
     private javax.swing.JLabel dateTf;
+    private com.toedter.calendar.JDateChooser dateToTf;
     private javax.swing.JTextField defaultAlertTimeTf;
     private javax.swing.JPanel defaultpage;
     private javax.swing.JButton delayBtn;
@@ -1676,6 +1879,8 @@ public class GUIDashboard extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel13;
     private javax.swing.JLabel jLabel14;
+    private javax.swing.JLabel jLabel15;
+    private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -1690,7 +1895,6 @@ public class GUIDashboard extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JButton loadcsvBtn;
     private javax.swing.JButton minbtn;
-    private javax.swing.JButton monthlyrepBtn;
     private javax.swing.JPanel pnlHead;
     private javax.swing.JProgressBar progressBar;
     private javax.swing.JPanel reportBtn;
@@ -1711,6 +1915,7 @@ public class GUIDashboard extends javax.swing.JFrame {
     private javax.swing.JCheckBox screenalert3Box;
     private javax.swing.JCheckBox screenalert3Box1;
     private javax.swing.JCheckBox screenalert3Box2;
+    private javax.swing.JButton setCsvPathBtn;
     private javax.swing.JPanel settingsBtn;
     private javax.swing.JPanel settingsDash;
     private javax.swing.JTextField testsGroup1Tf;
