@@ -8,17 +8,15 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import com.opencsv.CSVReader;
 import javax.swing.UIManager;
+import SampleMonitoringGUI.GUIDashboard;
+
 
 /**
  *
  * @author Mark
  */
 public class MainClass {
-
     public static void main(String[] args) throws ParseException {
         
         try{
@@ -30,7 +28,9 @@ public class MainClass {
         GUIDashboard guiD = new GUIDashboard();
         guiD.setVisible(true);
 
-        String csvFile = "/Users/Mark/Dropbox/Final year/Project/csvFiles/sampleinfo.csv";
+        
+        //can be removed
+        String csvFile = CSVFilePath.path;
         String line ="";
         Date systemTime = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
@@ -42,25 +42,51 @@ public class MainClass {
         ArrayList<String> holder = new ArrayList<String>();
         
         try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
-           while((line = br.readLine()) != null){
-                String[] values = line.split(",");
-                timeList.add(values[4]);
-           }
+//           while((line = br.readLine()) != null){
+//                String[] values = line.split(",");
+//                timeList.add(values[4]);                  //broken.
+//           }
+
+            while((line = br.readLine()) != null){
+                
+                    String[] values = line.split(",");
+                    for(int i = 0; i < values.length ;i++){    
+                        try{
+                            sdf.parse(values[i]);
+                            timeList.add(values[i]);
+                            break;
+                            }catch(ParseException e){
+//                                br.readLine();
+//                                System.out.println(e.getMessage());
+                        }
+                    }
+               
+            }
            System.out.println(timeList);
         }catch(IOException e){
             e.printStackTrace();
         }
 
         for(int i = 0; i<timeList.size(); i++){ 
+            if (timeList.get(i).length() > 4){
+                continue;
+            }
             holder.add(timeList.get(i));
+           try{
+                
             timeHolder.add(sdf.parse(holder.get(i)));
-                               
             if(timeHolder.get(i).getMinutes() < (systemTime.getMinutes()+30)){
                 System.out.println("Sample time is greater than system");
             }else{
                 System.out.println("Sample time is Less than system");
             }  
+           }catch(ParseException e){
+               System.out.print(e.getMessage());
+           }
+                               
+           
         }
+        //Can be removed
         //getting mins and hours of sample 1 then checking that vrs the current system time
         String sampleTime1 = timeList.get(0);
         String sampleTime2 = timeList.get(1);
@@ -82,6 +108,7 @@ public class MainClass {
         }else{
             System.out.println("Over hour delay");
         }
+        //till here
     }
     
 }

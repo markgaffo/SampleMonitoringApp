@@ -1,7 +1,10 @@
 package SampleMonitoringGUI;
 
-import java.sql.*;
-import javax.swing.*;
+import java.awt.event.KeyEvent;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import javax.swing.JOptionPane;
 
 public class LoginGUI extends javax.swing.JFrame {
     Connection conn=null;
@@ -28,7 +31,7 @@ public class LoginGUI extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setBackground(java.awt.Color.gray);
+        setBackground(java.awt.Color.lightGray);
 
         jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Login", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Constantia", 1, 14), new java.awt.Color(0, 204, 204))); // NOI18N
 
@@ -39,6 +42,11 @@ public class LoginGUI extends javax.swing.JFrame {
         passwordTf.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 passwordTfActionPerformed(evt);
+            }
+        });
+        passwordTf.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                passwordTfKeyPressed(evt);
             }
         });
 
@@ -124,7 +132,6 @@ public class LoginGUI extends javax.swing.JFrame {
             
             rs=prep.executeQuery();
             if(rs.next()){
-                JOptionPane.showMessageDialog(null, "Username and Password Correct!");
                 rs.close();
                 prep.close();
                 this.dispose();
@@ -142,6 +149,31 @@ public class LoginGUI extends javax.swing.JFrame {
     private void passwordTfActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_passwordTfActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_passwordTfActionPerformed
+
+    private void passwordTfKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_passwordTfKeyPressed
+        if(evt.getKeyCode()==KeyEvent.VK_ENTER){
+            String sql = "select * from user where user_name=? and user_password=?";
+            try{
+                prep=conn.prepareStatement(sql);
+                prep.setString(1, usernameTf.getText());
+                prep.setString(2, passwordTf.getText());
+
+                rs=prep.executeQuery();
+                if(rs.next()){
+                    rs.close();
+                    prep.close();
+                    this.dispose();
+                    GUIDashboard guiD = new GUIDashboard();
+                    guiD.setVisible(true);
+                }else{
+                    JOptionPane.showMessageDialog(null, "Username or Password Wrong!");
+                }
+
+            }catch(Exception e){
+                JOptionPane.showMessageDialog(null, e);
+            }
+        }
+    }//GEN-LAST:event_passwordTfKeyPressed
 
     /**
      * @param args the command line arguments

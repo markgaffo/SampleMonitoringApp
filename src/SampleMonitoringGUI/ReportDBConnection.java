@@ -29,7 +29,7 @@ public class ReportDBConnection{
         try{
             //con.setAutoCommit(false);
             for(ReportData data : dataList){
-                String query = "INSERT INTO report_table (SampleNumber, Date, Department, Tests, RequestTime, "
+                String query = "INSERT INTO report_table (SampleNumber, StartDate, Department, Tests, RequestTime, "
                     + " StartTime, ReportedDate, ReportedTime, FinishedTime ) "
                     + "VALUES(?,?,?,?,?,?,?,?,?)";
 
@@ -65,7 +65,7 @@ public class ReportDBConnection{
                 ReportData data = new ReportData();
 
                 data.setSampleNumber(rs.getInt("SampleNumber"));
-                data.setDate(rs.getString("Date"));
+                data.setDate(rs.getString("StartDate"));
                 data.setDepartment(rs.getString("Department"));
                 data.setTests(rs.getString("Tests"));
                 data.setRequestTime(rs.getString("RequestTime"));
