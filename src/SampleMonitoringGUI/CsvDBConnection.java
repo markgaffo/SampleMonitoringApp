@@ -32,17 +32,17 @@ public class CsvDBConnection{
     }
 
     public boolean insertDataIntoDatabase(ArrayList<CsvData> dataList) throws SQLException{
-        if (con != null ){
-            if(con.isClosed())
-            con=CsvDBConnection();
-            else {
-            con.close();
-            con=CsvDBConnection();
+        if(con != null){
+            if(con.isClosed()){
+                con=CsvDBConnection();
+            }
+            else{
+                con.close();
+                con=CsvDBConnection();
             }   
         }
-        else {
+        else{
             con=CsvDBConnection();
-
         }
         
         PreparedStatement statement = null;
@@ -64,6 +64,7 @@ public class CsvDBConnection{
                 try {
                     statement.execute();
                 }catch(java.sql.SQLException e ){
+                    //if key already exists 
                     String newQuery = "UPDATE csv_table SET Date = ?,Department = ?,Tests = ?,RequestTime = ?, "
                     + " StartTime = ? WHERE SampleNumber = ? ";
                 newStatement = con.prepareStatement(newQuery);
@@ -77,7 +78,7 @@ public class CsvDBConnection{
 
                 }
             }
-            if (statement!= null){
+            if(statement!= null){
                 statement.close();
             }
             if(newStatement!=null){
@@ -91,7 +92,7 @@ public class CsvDBConnection{
             } catch(SQLException e){
                 e.printStackTrace();
             }
-        if (statement!= null){
+        if(statement!= null){
             statement.close();
         }
         if(newStatement!=null){
@@ -137,17 +138,17 @@ public class CsvDBConnection{
         ArrayList<CsvData> dataList = new ArrayList<CsvData>();
         String query = "select * from csv_table ";
         Statement statement = null;
-        if (con != null ){
-            if(con.isClosed())
-            con=CsvDBConnection();
-            else {
-            con.close();
-            con=CsvDBConnection();
+        if(con != null ){
+            if(con.isClosed()){
+                con=CsvDBConnection();
+            }
+            else{
+                con.close();
+                con=CsvDBConnection();
             }   
         }
-        else {
+        else{
             con=CsvDBConnection();
-
         }
         
         try{
@@ -170,22 +171,24 @@ public class CsvDBConnection{
         }catch (SQLException e){
             e.printStackTrace();
         }
-        if(statement != null)
+        if(statement != null){
             statement.close();
+        }
         con.close();
         return null;
     }
 
     public int deleteAllFromDatabase() throws SQLException{
-        if (con != null ){
-            if(con.isClosed())
-            con=CsvDBConnection();
-            else {
-            con.close();
-            con=CsvDBConnection();
+        if(con != null ){
+            if(con.isClosed()){
+                con=CsvDBConnection();
+            }
+            else{
+                con.close();
+                con=CsvDBConnection();
             }   
         }
-        else {
+        else{
             con=CsvDBConnection();
         }
         
