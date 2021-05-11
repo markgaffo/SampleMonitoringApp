@@ -59,10 +59,13 @@ import SampleMonitoring.ReadWrite;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.text.DateFormat;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.stream.Collectors;
+import javafx.util.Pair;
 import javax.swing.JTextField;
 
 public class GUIDashboard extends javax.swing.JFrame {
@@ -104,8 +107,8 @@ public class GUIDashboard extends javax.swing.JFrame {
     public GUIDashboard() {
         initComponents();
         clock();
-        UpdateTable();   
         setTableParmas();
+        UpdateTable();   
         timer.schedule(myTask, 10000, 60000);
     }
     
@@ -236,9 +239,17 @@ public class GUIDashboard extends javax.swing.JFrame {
         }
     }
 
-    
-    private void renderChart(){
-        final CategoryDataset dataset1 = createDataset1();
+    private void renderChart(String from, String to) throws SQLException{
+        String fromDate = from;
+        String toDate = to;
+        Pair<DefaultCategoryDataset, DefaultCategoryDataset> p;
+        
+        //Bar
+        p = createDataset1(fromDate, toDate);
+
+        final CategoryDataset dataset1 = p.getKey();
+        //Line
+        final CategoryDataset dataset2 = p.getValue();
 
         // create the chart...
         final JFreeChart chart = ChartFactory.createBarChart(
@@ -269,7 +280,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         barRenderer.setBaseSeriesVisible(true);
          
         
-        final CategoryDataset dataset2 = createDataset2();
+        //right Y axis
         plot.setDataset(1, dataset2);
         plot.mapDatasetToRangeAxis(1, 1);
         ValueMarker marker = new ValueMarker(10);  // position is the value on the axis
@@ -301,87 +312,145 @@ public class GUIDashboard extends javax.swing.JFrame {
         chartPanel.validate();
     }
 
+//    public 
     
-    private CategoryDataset createDataset1() {
+    private Pair createDataset1(String from, String to) throws SQLException {
 
-        // row keys...
+        //getting all the data between date range and setting up the dateobject
+        ArrayList<DateOverHour> dateSet = new ArrayList<>();
+        ArrayList<ReportData> dateListFromDB = repCon.getDateDataFromDatabase(from, to);
+        double allTotalSamp = 0.0;
+        double allOverHour = 0.0;
+        
+            Map<String, List<ReportData>> dateGrouped = 
+                        dateListFromDB.stream().collect(Collectors.groupingBy(w -> w.Date));
+            
+            for (Map.Entry<String, List<ReportData>> entry : dateGrouped.entrySet()) {
+                System.out.println("Key = " + entry.getKey() + ", Value = " + entry.getValue());
+                
+
+                
+                double totalTime = 0.0;
+                double overHr = 0.0;
+                double totalSamplesPerDay = 0.0;
+                double averageTime = 0.0;
+                double percentOverHr = 0.0;
+                List<ReportData> dataList = entry.getValue();
+                
+                for(ReportData data : dataList){
+                    totalSamplesPerDay = totalSamplesPerDay+1;
+                    
+                    int SampNum = data.getSampleNumber();              
+                    String StartDate = data.getDate();
+                    String Department = data.getDepartment();
+                    String Tests = data.getTests();
+                    String RequestTime = data.getRequestTime();
+                    String StartTime = data.getStartTime();
+                    String ReportedDate = data.getReportedDate();
+                    String ReportedTime = data.getReportedTime();
+                    String FinishedTime = data.getFinishedTime();
+                    
+                    //System.out.println(SampNum);
+                    //convert starttime and finishedtime to (HH:mm)
+                    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+                    
+                    String[] startSplit = StartTime.split(":");
+                    int startHour = Integer.parseInt(startSplit[0]);
+                    int startMin = Integer.parseInt(startSplit[1]);
+                    
+                    String[] endSplit = FinishedTime.split(":");
+                    int endHour = Integer.parseInt(endSplit[0]);
+                    int endMin = Integer.parseInt(endSplit[1]);
+                        
+                    int timeDifMin = endMin-startMin;
+                    int timeDifHour = endHour-startHour;
+                    
+                    if(timeDifHour < 1 && timeDifHour > -1){
+                        totalTime = totalTime+timeDifMin;
+                    }else if(timeDifHour == 1){
+                        totalTime = totalTime+(timeDifMin+60);
+                        if(timeDifMin+60 >= 60){
+                            overHr = overHr+1;
+                        }
+                    }else if(timeDifHour == 2){
+                        totalTime = totalTime+(timeDifMin+120);
+                        overHr = overHr+1;
+                    }else if(timeDifHour == 3){
+                        totalTime = totalTime+(timeDifMin+180);
+                        overHr = overHr+1;
+                    }else if(timeDifHour == -23){
+                        totalTime = totalTime+(timeDifMin+60);
+                        if(timeDifMin+60 >= 60){
+                            overHr = overHr+1;
+                        }
+                    }else if(timeDifHour == -22){
+                        totalTime = totalTime+(timeDifMin+120);
+                        overHr = overHr+1;
+                    }else if(timeDifHour == -21){
+                        totalTime = totalTime+(timeDifMin+180);
+                        overHr = overHr+1;
+                    }              
+
+                }
+
+                System.out.println("Total samp in day: "+totalSamplesPerDay);
+                System.out.println("Total samp time: "+totalTime);
+                allOverHour = allOverHour + overHr;
+                allTotalSamp = allTotalSamp + totalSamplesPerDay;
+                
+                averageTime = (totalTime/totalSamplesPerDay);
+                averageTime = Math.round(averageTime * 100);
+                averageTime = averageTime/100;
+                
+                //to give 2 digit precent % value
+                percentOverHr = overHr/totalSamplesPerDay;
+                percentOverHr = percentOverHr * 100;
+                percentOverHr = Math.round(percentOverHr * 100);
+                percentOverHr = percentOverHr/100;
+                
+                //passing info for each date
+                DateOverHour feed = new DateOverHour();
+                feed.setDate(entry.getKey());
+                feed.setOverHr(percentOverHr);
+                feed.setAvgTime(averageTime);
+                dateSet.add(feed);
+                
+                
+                System.out.println("Average time: " + averageTime);
+                System.out.println("Total over hr: " + overHr);
+                System.out.println("Percent over hr: "+percentOverHr);
+            }
+
+            
+            Collections.sort(dateSet, (DateOverHour o1, DateOverHour o2) -> {
+                DateFormat f = new SimpleDateFormat("dd/MM/yyyy");
+                try {
+                    return f.parse(o1.getDate()).compareTo(f.parse(o2.getDate()));
+                } catch (ParseException e) {
+                    throw new IllegalArgumentException(e);
+                }
+            });
+  
+        //both sets needed to be plotted
+        //both dataset keys
+        final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        final DefaultCategoryDataset dataset2 = new DefaultCategoryDataset();
         final String series1 = "% Over an Hour";
-
-        // column keys...
-        //for loop for date columns
-        //if (lstRecords != null) {
-        //  for(int i = 0; i < lstRecords.size(); i++){
-        //      dto = lstRecords.get(i);
-        //      String Dates = dto.getDate();
-        //  }
-        //}
-        final String category1 = "22/04";
-        final String category2 = "23/04";
-        final String category3 = "24/04";
-        final String category4 = "25/04";
-        final String category5 = "26/04";
-        final String category6 = "27/04";
-        final String category7 = "28/04";
-        final String category8 = "29/04";
-        final String category9 = "30/04";
-        final String category10 = "31/04";
+        final String series2 = "Average minutes";
         
-
-        // create the dataset...
-        final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        
-        //for loop for each day value
-        //loop 1st and 3rd value
-        dataset.addValue(10, series1, category1);
-        dataset.addValue(4.1, series1, category2);
-        dataset.addValue(3.6, series1, category3);
-        dataset.addValue(5.4, series1, category4);
-        dataset.addValue(4.2, series1, category5);
-        dataset.addValue(11.1, series1, category6);
-        dataset.addValue(2.0, series1, category7);
-        dataset.addValue(3.4, series1, category8);
-        dataset.addValue(12.4, series1, category9);
-        dataset.addValue(5.4, series1, category10);        
-
-        return dataset;
+        String all = String.valueOf(allTotalSamp);
+        String over = String.valueOf(allOverHour);
+        repTotalSampTf.setText(all);
+        repOverHourTf.setText(over);
+        //gets average time and times over hour for each date
+        for(DateOverHour data : dateSet){
+            dataset.addValue(data.getOverHr(), series1, data.getDate());
+            dataset2.addValue(data.getAvgTime(), series2, data.getDate());
+        }
+        //too pass both DefaultCategoryDatasets to be plotted
+        Pair<DefaultCategoryDataset, DefaultCategoryDataset> p = new Pair<>(dataset,dataset2);
+        return p;
     }
-
-    private CategoryDataset createDataset2() {
-
-        // row keys...
-        final String series1 = "Average minutes";
-
-        // column keys...
-        final String category1 = "22/04";
-        final String category2 = "23/04";
-        final String category3 = "24/04";
-        final String category4 = "25/04";
-        final String category5 = "26/04";
-        final String category6 = "27/04";
-        final String category7 = "28/04";
-        final String category8 = "29/04";
-        final String category9 = "30/04";
-        final String category10 = "31/04";
-        
-        // create the dataset...
-        final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-        dataset.addValue(25.0, series1, category1);
-        dataset.addValue(24.0, series1, category2);
-        dataset.addValue(31.0, series1, category3);
-        dataset.addValue(25.0, series1, category4);
-        dataset.addValue(46.0, series1, category5);
-        dataset.addValue(42.0, series1, category6);
-        dataset.addValue(37.0, series1, category7);
-        dataset.addValue(28.0, series1, category8);
-        dataset.addValue(49.0, series1, category9);
-        dataset.addValue(36.0, series1, category10);  
-        
-        return dataset;
-
-    }
-    
-    
 
     public static boolean readAndWriteCSVFileToDatabase() throws SQLException {    
         try{
@@ -470,7 +539,7 @@ public class GUIDashboard extends javax.swing.JFrame {
             String[] nextRecord; 
             ArrayList<ReportData> rdataList = new ArrayList<ReportData>();
             while((nextRecord = csvReader.readNext()) != null){
-                System.out.println(nextRecord[0]);
+                //System.out.println(nextRecord[0]);
                 ReportData rdata = new ReportData();
                 rdata.setSampleNumber(Integer.parseInt(nextRecord[0]));
                 //add year
@@ -575,33 +644,39 @@ public class GUIDashboard extends javax.swing.JFrame {
         loadcsvBtn = new javax.swing.JButton();
         jLabel17 = new javax.swing.JLabel();
         jLabel9 = new javax.swing.JLabel();
+        jLabel18 = new javax.swing.JLabel();
+        repTotalSampTf = new javax.swing.JTextField();
+        jLabel19 = new javax.swing.JLabel();
+        repOverHourTf = new javax.swing.JTextField();
+        saveGraphBtn = new javax.swing.JButton();
         settingsDash = new javax.swing.JPanel();
-        testsGroup1Tf = new javax.swing.JTextField();
-        testsGroup2Tf = new javax.swing.JTextField();
-        testsGroup3Tf = new javax.swing.JTextField();
-        jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
-        jLabel5 = new javax.swing.JLabel();
         setCsvPathBtn = new javax.swing.JButton();
-        timeGroup1Tf = new javax.swing.JTextField();
-        timeGroup2Tf = new javax.swing.JTextField();
-        timeGroup3Tf = new javax.swing.JTextField();
         jLabel6 = new javax.swing.JLabel();
-        jLabel7 = new javax.swing.JLabel();
-        jLabel11 = new javax.swing.JLabel();
-        jLabel13 = new javax.swing.JLabel();
         jLabel10 = new javax.swing.JLabel();
         jLabel12 = new javax.swing.JLabel();
-        jLabel14 = new javax.swing.JLabel();
         defaultAlertTimeTf = new javax.swing.JTextField();
         applyBtn1 = new javax.swing.JButton();
         jPanel4 = new javax.swing.JPanel();
+        testsGroup3Tf = new javax.swing.JTextField();
+        jLabel20 = new javax.swing.JLabel();
+        testsGroup2Tf = new javax.swing.JTextField();
+        jLabel5 = new javax.swing.JLabel();
+        testsGroup1Tf = new javax.swing.JTextField();
+        jLabel3 = new javax.swing.JLabel();
+        timeGroup1Tf = new javax.swing.JTextField();
+        jLabel14 = new javax.swing.JLabel();
+        timeGroup2Tf = new javax.swing.JTextField();
+        jLabel11 = new javax.swing.JLabel();
+        timeGroup3Tf = new javax.swing.JTextField();
+        jLabel7 = new javax.swing.JLabel();
+        jLabel21 = new javax.swing.JLabel();
+        jLabel13 = new javax.swing.JLabel();
         sampleDash = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         sampleTable = new javax.swing.JTable();
         jPanel2 = new javax.swing.JPanel();
         csvBtn = new javax.swing.JButton();
-        deleteBtn = new javax.swing.JButton();
         jPanel1 = new javax.swing.JPanel();
         sampleNumTableTf = new javax.swing.JTextField();
         delayBtn = new javax.swing.JButton();
@@ -614,6 +689,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         jPanel6 = new javax.swing.JPanel();
         totalsampleTf = new javax.swing.JTextField();
         delayTitleLbl2 = new javax.swing.JLabel();
+        delCsvBtn = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Dashboard");
@@ -637,7 +713,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         });
 
         exitbtn.setBackground(new java.awt.Color(4, 68, 108));
-        exitbtn.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
+        exitbtn.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
         exitbtn.setForeground(new java.awt.Color(204, 204, 204));
         exitbtn.setText("X");
         exitbtn.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
@@ -921,7 +997,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         defaultpage.setLayout(defaultpageLayout);
         defaultpageLayout.setHorizontalGroup(
             defaultpageLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1002, Short.MAX_VALUE)
+            .addGap(0, 1005, Short.MAX_VALUE)
         );
         defaultpageLayout.setVerticalGroup(
             defaultpageLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -933,17 +1009,27 @@ public class GUIDashboard extends javax.swing.JFrame {
         chartPanel.setLayout(new java.awt.BorderLayout());
 
         jPanel3.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel3.setBorder(javax.swing.BorderFactory.createEtchedBorder());
 
-        jLabel8.setFont(new java.awt.Font("Sitka Heading", 1, 14)); // NOI18N
+        jLabel8.setFont(new java.awt.Font("Sitka Heading", 1, 16)); // NOI18N
         jLabel8.setForeground(new java.awt.Color(8, 118, 188));
         jLabel8.setText("After a historical csv file is");
 
-        delcsvBtn.setBackground(new java.awt.Color(255, 255, 255));
+        delcsvBtn.setBackground(new java.awt.Color(8, 118, 188));
         delcsvBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        delcsvBtn.setForeground(new java.awt.Color(8, 118, 188));
+        delcsvBtn.setForeground(new java.awt.Color(255, 255, 255));
         delcsvBtn.setText("Clear file");
+        delcsvBtn.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         delcsvBtn.setContentAreaFilled(false);
         delcsvBtn.setOpaque(true);
+        delcsvBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                delcsvBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                delcsvBtnMouseExited(evt);
+            }
+        });
         delcsvBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 delcsvBtnActionPerformed(evt);
@@ -955,15 +1041,26 @@ public class GUIDashboard extends javax.swing.JFrame {
         jLabel15.setText("From:");
 
         dateToTf.setDateFormatString("dd/MM/yyyy");
+        dateToTf.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
 
         dateFromTf.setDateFormatString("dd/MM/yyyy");
+        dateFromTf.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
 
-        dateApplyBtn.setBackground(new java.awt.Color(255, 255, 255));
+        dateApplyBtn.setBackground(new java.awt.Color(8, 118, 188));
         dateApplyBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        dateApplyBtn.setForeground(new java.awt.Color(8, 118, 188));
+        dateApplyBtn.setForeground(new java.awt.Color(255, 255, 255));
         dateApplyBtn.setText("Apply");
+        dateApplyBtn.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         dateApplyBtn.setContentAreaFilled(false);
         dateApplyBtn.setOpaque(true);
+        dateApplyBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                dateApplyBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                dateApplyBtnMouseExited(evt);
+            }
+        });
         dateApplyBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 dateApplyBtnActionPerformed(evt);
@@ -975,14 +1072,24 @@ public class GUIDashboard extends javax.swing.JFrame {
         dateSelectLayout.setHorizontalGroup(
             dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(dateSelectLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(dateApplyBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel15)
-                    .addComponent(jLabel16)
-                    .addComponent(dateToTf, javax.swing.GroupLayout.DEFAULT_SIZE, 118, Short.MAX_VALUE)
-                    .addComponent(dateFromTf, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGroup(dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, dateSelectLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(dateFromTf, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(dateToTf, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, dateSelectLayout.createSequentialGroup()
+                                .addComponent(jLabel15)
+                                .addGap(0, 0, Short.MAX_VALUE))))
+                    .addGroup(dateSelectLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jLabel16)
+                        .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, dateSelectLayout.createSequentialGroup()
+                .addGap(0, 29, Short.MAX_VALUE)
+                .addComponent(dateApplyBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 118, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(28, 28, 28))
         );
         dateSelectLayout.setVerticalGroup(
             dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -990,12 +1097,12 @@ public class GUIDashboard extends javax.swing.JFrame {
                 .addContainerGap()
                 .addComponent(jLabel15)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(dateFromTf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(2, 2, 2)
+                .addComponent(dateFromTf, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(7, 7, 7)
                 .addComponent(jLabel16)
-                .addGap(2, 2, 2)
-                .addComponent(dateToTf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(dateToTf, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(dateApplyBtn)
                 .addContainerGap())
         );
@@ -1007,36 +1114,98 @@ public class GUIDashboard extends javax.swing.JFrame {
         loadcsvBtn.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         loadcsvBtn.setContentAreaFilled(false);
         loadcsvBtn.setOpaque(true);
+        loadcsvBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                loadcsvBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                loadcsvBtnMouseExited(evt);
+            }
+        });
         loadcsvBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 loadcsvBtnActionPerformed(evt);
             }
         });
 
-        jLabel17.setFont(new java.awt.Font("Sitka Heading", 1, 14)); // NOI18N
+        jLabel17.setFont(new java.awt.Font("Sitka Heading", 1, 16)); // NOI18N
         jLabel17.setForeground(new java.awt.Color(8, 118, 188));
-        jLabel17.setText("to display a graph ");
+        jLabel17.setText("then apply to display ");
 
-        jLabel9.setFont(new java.awt.Font("Sitka Heading", 1, 14)); // NOI18N
+        jLabel9.setFont(new java.awt.Font("Sitka Heading", 1, 16)); // NOI18N
         jLabel9.setForeground(new java.awt.Color(8, 118, 188));
         jLabel9.setText("selected, input a date range");
+
+        jLabel18.setFont(new java.awt.Font("Sitka Heading", 1, 16)); // NOI18N
+        jLabel18.setForeground(new java.awt.Color(8, 118, 188));
+        jLabel18.setText("Total Samples:");
+
+        repTotalSampTf.setFont(new java.awt.Font("Sitka Heading", 1, 16)); // NOI18N
+        repTotalSampTf.setBorder(null);
+
+        jLabel19.setFont(new java.awt.Font("Sitka Heading", 1, 16)); // NOI18N
+        jLabel19.setForeground(new java.awt.Color(8, 118, 188));
+        jLabel19.setText("Samples over hour:");
+
+        repOverHourTf.setFont(new java.awt.Font("Sitka Heading", 1, 16)); // NOI18N
+        repOverHourTf.setBorder(null);
+
+        saveGraphBtn.setBackground(new java.awt.Color(8, 118, 188));
+        saveGraphBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
+        saveGraphBtn.setForeground(new java.awt.Color(255, 255, 255));
+        saveGraphBtn.setText("Save as PNG");
+        saveGraphBtn.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        saveGraphBtn.setContentAreaFilled(false);
+        saveGraphBtn.setOpaque(true);
+        saveGraphBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                saveGraphBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                saveGraphBtnMouseExited(evt);
+            }
+        });
+        saveGraphBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                saveGraphBtnActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addContainerGap()
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGap(13, 13, 13)
                         .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addComponent(jLabel9)
-                    .addComponent(jLabel8)
-                    .addComponent(jLabel17)
-                    .addComponent(dateSelect, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel8)
+                                    .addComponent(jLabel17)
+                                    .addComponent(jLabel9)
+                                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                            .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(saveGraphBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGap(22, 22, 22))))
+                            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                                .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
+                                    .addContainerGap()
+                                    .addComponent(jLabel18)
+                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                    .addComponent(repTotalSampTf))
+                                .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
+                                    .addGap(20, 20, 20)
+                                    .addComponent(dateSelect, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jLabel19)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(repOverHourTf)))
                 .addContainerGap())
         );
         jPanel3Layout.setVerticalGroup(
@@ -1049,12 +1218,22 @@ public class GUIDashboard extends javax.swing.JFrame {
                 .addGap(0, 0, 0)
                 .addComponent(jLabel17)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(dateSelect, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGap(118, 118, 118)
-                .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(dateSelect, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
-                .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(8, 8, 8))
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel18)
+                    .addComponent(repTotalSampTf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel19)
+                    .addComponent(repOverHourTf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 30, Short.MAX_VALUE)
+                .addComponent(saveGraphBtn)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(loadcsvBtn)
+                .addGap(12, 12, 12)
+                .addComponent(delcsvBtn)
+                .addContainerGap())
         );
 
         javax.swing.GroupLayout reportDashLayout = new javax.swing.GroupLayout(reportDash);
@@ -1063,9 +1242,9 @@ public class GUIDashboard extends javax.swing.JFrame {
             reportDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(reportDashLayout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(chartPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 781, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 8, Short.MAX_VALUE)
-                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(chartPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 756, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
         reportDashLayout.setVerticalGroup(
@@ -1073,8 +1252,8 @@ public class GUIDashboard extends javax.swing.JFrame {
             .addGroup(reportDashLayout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(reportDashLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(chartPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(chartPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -1082,36 +1261,14 @@ public class GUIDashboard extends javax.swing.JFrame {
 
         settingsDash.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        testsGroup1Tf.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
-        testsGroup1Tf.setText("GLUC, DP, RNL");
-        settingsDash.add(testsGroup1Tf, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 100, 386, 34));
-
-        testsGroup2Tf.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
-        testsGroup2Tf.setText("TR, UL, PXU");
-        settingsDash.add(testsGroup2Tf, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 180, 386, 34));
-
-        testsGroup3Tf.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
-        testsGroup3Tf.setText("LP, DP, CRP");
-        settingsDash.add(testsGroup3Tf, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 260, 386, 34));
-
-        jLabel3.setFont(new java.awt.Font("Sitka Small", 0, 14)); // NOI18N
-        jLabel3.setForeground(new java.awt.Color(8, 118, 188));
-        jLabel3.setText("Test Group 1 (Moderate Priority)");
-        settingsDash.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 70, -1, 24));
-
-        jLabel4.setFont(new java.awt.Font("Sitka Small", 0, 14)); // NOI18N
+        jLabel4.setFont(new java.awt.Font("Sitka Small", 1, 14)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(8, 118, 188));
         jLabel4.setText("Set Path to CSV File:");
-        settingsDash.add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 380, -1, 24));
+        settingsDash.add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 390, -1, 24));
 
-        jLabel5.setFont(new java.awt.Font("Sitka Small", 0, 14)); // NOI18N
-        jLabel5.setForeground(new java.awt.Color(8, 118, 188));
-        jLabel5.setText("Test Group 2 (High Priority)");
-        settingsDash.add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 150, -1, 24));
-
-        setCsvPathBtn.setBackground(new java.awt.Color(255, 255, 255));
+        setCsvPathBtn.setBackground(new java.awt.Color(8, 118, 188));
         setCsvPathBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        setCsvPathBtn.setForeground(new java.awt.Color(8, 118, 188));
+        setCsvPathBtn.setForeground(new java.awt.Color(255, 255, 255));
         setCsvPathBtn.setText("Set CSV file Path");
         setCsvPathBtn.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         setCsvPathBtn.setContentAreaFilled(false);
@@ -1129,66 +1286,35 @@ public class GUIDashboard extends javax.swing.JFrame {
                 setCsvPathBtnActionPerformed(evt);
             }
         });
-        settingsDash.add(setCsvPathBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 410, 280, -1));
-
-        timeGroup1Tf.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
-        timeGroup1Tf.setText("30");
-        settingsDash.add(timeGroup1Tf, new org.netbeans.lib.awtextra.AbsoluteConstraints(650, 100, -1, 34));
-
-        timeGroup2Tf.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
-        timeGroup2Tf.setText("45");
-        settingsDash.add(timeGroup2Tf, new org.netbeans.lib.awtextra.AbsoluteConstraints(650, 180, -1, 33));
-
-        timeGroup3Tf.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
-        timeGroup3Tf.setText("25");
-        settingsDash.add(timeGroup3Tf, new org.netbeans.lib.awtextra.AbsoluteConstraints(650, 260, -1, 33));
+        settingsDash.add(setCsvPathBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 420, 280, 30));
 
         jLabel6.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
         jLabel6.setForeground(new java.awt.Color(8, 118, 188));
         jLabel6.setText("Mins");
-        settingsDash.add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 330, -1, -1));
-
-        jLabel7.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jLabel7.setForeground(new java.awt.Color(8, 118, 188));
-        jLabel7.setText("Mins");
-        settingsDash.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(690, 270, -1, -1));
-
-        jLabel11.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jLabel11.setForeground(new java.awt.Color(8, 118, 188));
-        jLabel11.setText("Mins");
-        settingsDash.add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(690, 190, -1, -1));
-
-        jLabel13.setFont(new java.awt.Font("Sitka Small", 0, 14)); // NOI18N
-        jLabel13.setForeground(new java.awt.Color(8, 118, 188));
-        jLabel13.setText("Test Group 3 (Urgent)");
-        settingsDash.add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 230, -1, 24));
+        settingsDash.add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(460, 360, 30, -1));
 
         jLabel10.setFont(new java.awt.Font("Sitka Small", 1, 18)); // NOI18N
         jLabel10.setForeground(new java.awt.Color(8, 118, 188));
         jLabel10.setText("Adjust alert times and the file used to monitor the samples here");
         settingsDash.add(jLabel10, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 20, -1, 24));
 
-        jLabel12.setFont(new java.awt.Font("Sitka Small", 0, 14)); // NOI18N
+        jLabel12.setFont(new java.awt.Font("Sitka Small", 1, 16)); // NOI18N
         jLabel12.setForeground(new java.awt.Color(8, 118, 188));
         jLabel12.setText("Alert time default:");
-        settingsDash.add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 330, -1, 20));
-
-        jLabel14.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
-        jLabel14.setForeground(new java.awt.Color(8, 118, 188));
-        jLabel14.setText("Mins");
-        settingsDash.add(jLabel14, new org.netbeans.lib.awtextra.AbsoluteConstraints(690, 110, -1, -1));
+        settingsDash.add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 360, -1, 20));
 
         defaultAlertTimeTf.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
         defaultAlertTimeTf.setText("40");
-        settingsDash.add(defaultAlertTimeTf, new org.netbeans.lib.awtextra.AbsoluteConstraints(390, 330, -1, 30));
+        settingsDash.add(defaultAlertTimeTf, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 350, 30, 30));
 
-        applyBtn1.setBackground(new java.awt.Color(255, 255, 255));
+        applyBtn1.setBackground(new java.awt.Color(8, 118, 188));
         applyBtn1.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        applyBtn1.setForeground(new java.awt.Color(8, 118, 188));
+        applyBtn1.setForeground(new java.awt.Color(255, 255, 255));
         applyBtn1.setText("Apply Changes");
         applyBtn1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         applyBtn1.setContentAreaFilled(false);
         applyBtn1.setOpaque(true);
+        applyBtn1.setPreferredSize(new java.awt.Dimension(107, 27));
         applyBtn1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 applyBtn1MouseEntered(evt);
@@ -1202,20 +1328,131 @@ public class GUIDashboard extends javax.swing.JFrame {
                 applyBtn1ActionPerformed(evt);
             }
         });
-        settingsDash.add(applyBtn1, new org.netbeans.lib.awtextra.AbsoluteConstraints(820, 420, -1, -1));
+        settingsDash.add(applyBtn1, new org.netbeans.lib.awtextra.AbsoluteConstraints(590, 420, 130, 30));
+
+        jPanel4.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel4.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+
+        testsGroup3Tf.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
+        testsGroup3Tf.setText("LP, DP, CRP");
+
+        jLabel20.setFont(new java.awt.Font("Sitka Small", 0, 16)); // NOI18N
+        jLabel20.setForeground(new java.awt.Color(8, 118, 188));
+        jLabel20.setText("Test Group 3 (Urgent)");
+
+        testsGroup2Tf.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
+        testsGroup2Tf.setText("TR, UL, PXU");
+
+        jLabel5.setFont(new java.awt.Font("Sitka Small", 0, 16)); // NOI18N
+        jLabel5.setForeground(new java.awt.Color(8, 118, 188));
+        jLabel5.setText("Test Group 2 (High Priority)");
+
+        testsGroup1Tf.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
+        testsGroup1Tf.setText("GLUC, DP, RNL");
+
+        jLabel3.setFont(new java.awt.Font("Sitka Small", 0, 16)); // NOI18N
+        jLabel3.setForeground(new java.awt.Color(8, 118, 188));
+        jLabel3.setText("Test Group 1 (Moderate Priority)");
+
+        timeGroup1Tf.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        timeGroup1Tf.setText("30");
+
+        jLabel14.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+        jLabel14.setForeground(new java.awt.Color(8, 118, 188));
+        jLabel14.setText("Mins");
+
+        timeGroup2Tf.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        timeGroup2Tf.setText("45");
+
+        jLabel11.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+        jLabel11.setForeground(new java.awt.Color(8, 118, 188));
+        jLabel11.setText("Mins");
+
+        timeGroup3Tf.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        timeGroup3Tf.setText("25");
+
+        jLabel7.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+        jLabel7.setForeground(new java.awt.Color(8, 118, 188));
+        jLabel7.setText("Mins");
+
+        jLabel21.setFont(new java.awt.Font("Sitka Small", 0, 14)); // NOI18N
+        jLabel21.setForeground(new java.awt.Color(8, 118, 188));
+        jLabel21.setText("If a sample has no tests in a test group");
+
+        jLabel13.setFont(new java.awt.Font("Sitka Small", 0, 14)); // NOI18N
+        jLabel13.setForeground(new java.awt.Color(8, 118, 188));
+        jLabel13.setText("this time will be assigned to it");
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 100, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
+                .addContainerGap(186, Short.MAX_VALUE)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel13)
+                    .addComponent(jLabel21)
+                    .addComponent(jLabel3)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addComponent(testsGroup1Tf, javax.swing.GroupLayout.PREFERRED_SIZE, 386, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(14, 14, 14)
+                        .addComponent(timeGroup1Tf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(12, 12, 12)
+                        .addComponent(jLabel14))
+                    .addComponent(jLabel5)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addComponent(testsGroup2Tf, javax.swing.GroupLayout.PREFERRED_SIZE, 386, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(14, 14, 14)
+                        .addComponent(timeGroup2Tf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(12, 12, 12)
+                        .addComponent(jLabel11))
+                    .addComponent(jLabel20)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addComponent(testsGroup3Tf, javax.swing.GroupLayout.PREFERRED_SIZE, 386, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(14, 14, 14)
+                        .addComponent(timeGroup3Tf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(12, 12, 12)
+                        .addComponent(jLabel7)))
+                .addGap(174, 174, 174))
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 100, Short.MAX_VALUE)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addGap(54, 54, 54)
+                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(6, 6, 6)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(testsGroup1Tf, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(timeGroup1Tf, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addGap(10, 10, 10)
+                        .addComponent(jLabel14)))
+                .addGap(16, 16, 16)
+                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(6, 6, 6)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(testsGroup2Tf, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(timeGroup2Tf, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addGap(10, 10, 10)
+                        .addComponent(jLabel11)))
+                .addGap(16, 16, 16)
+                .addComponent(jLabel20, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(6, 6, 6)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(testsGroup3Tf, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(timeGroup3Tf, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addGap(10, 10, 10)
+                        .addComponent(jLabel7)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel21, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, 0)
+                .addComponent(jLabel13, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(119, Short.MAX_VALUE))
         );
 
-        settingsDash.add(jPanel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(780, 100, -1, -1));
+        settingsDash.add(jPanel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 10, 830, 460));
 
         bodypnl.add(settingsDash, "card5");
 
@@ -1271,17 +1508,24 @@ public class GUIDashboard extends javax.swing.JFrame {
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
         jPanel2.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(153, 153, 153)));
 
-        csvBtn.setText("Load CSV");
+        csvBtn.setBackground(new java.awt.Color(8, 118, 188));
+        csvBtn.setFont(new java.awt.Font("Sitka Heading", 1, 16)); // NOI18N
+        csvBtn.setForeground(new java.awt.Color(255, 255, 255));
+        csvBtn.setText("Update Samples");
+        csvBtn.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        csvBtn.setContentAreaFilled(false);
+        csvBtn.setOpaque(true);
+        csvBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                csvBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                csvBtnMouseExited(evt);
+            }
+        });
         csvBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 csvBtnActionPerformed(evt);
-            }
-        });
-
-        deleteBtn.setText("Delete Database");
-        deleteBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                deleteBtnActionPerformed(evt);
             }
         });
 
@@ -1434,22 +1678,47 @@ public class GUIDashboard extends javax.swing.JFrame {
         delayTitleLbl2.setForeground(new java.awt.Color(8, 118, 188));
         delayTitleLbl2.setText("start time of the sample can be edited ");
 
+        delCsvBtn.setBackground(new java.awt.Color(8, 118, 188));
+        delCsvBtn.setFont(new java.awt.Font("Sitka Heading", 1, 16)); // NOI18N
+        delCsvBtn.setForeground(new java.awt.Color(255, 255, 255));
+        delCsvBtn.setText("Clear Current Samples");
+        delCsvBtn.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        delCsvBtn.setContentAreaFilled(false);
+        delCsvBtn.setOpaque(true);
+        delCsvBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                delCsvBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                delCsvBtnMouseExited(evt);
+            }
+        });
+        delCsvBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                delCsvBtnActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 12, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(csvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 134, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(26, 26, 26)
-                        .addComponent(deleteBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 134, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(delayTitleLbl)
-                    .addComponent(delayTitleLbl2)
-                    .addComponent(totalSamplepanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addContainerGap()
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(delayTitleLbl)
+                            .addComponent(delayTitleLbl2)
+                            .addComponent(totalSamplepanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addGap(49, 49, 49)
+                                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addGap(88, 88, 88)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(delCsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 181, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(csvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 181, javax.swing.GroupLayout.PREFERRED_SIZE))))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
@@ -1461,13 +1730,13 @@ public class GUIDashboard extends javax.swing.JFrame {
                 .addComponent(delayTitleLbl)
                 .addGap(3, 3, 3)
                 .addComponent(delayTitleLbl2)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(csvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(deleteBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap())
+                .addGap(37, 37, 37)
+                .addComponent(csvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(delCsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout sampleDashLayout = new javax.swing.GroupLayout(sampleDash);
@@ -1497,7 +1766,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(pnlHead, javax.swing.GroupLayout.DEFAULT_SIZE, 1002, Short.MAX_VALUE)
+            .addComponent(pnlHead, javax.swing.GroupLayout.DEFAULT_SIZE, 1005, Short.MAX_VALUE)
             .addComponent(bodypnl, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addComponent(toppnl, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
@@ -1615,22 +1884,15 @@ public class GUIDashboard extends javax.swing.JFrame {
         settingsBtn.setBackground(new Color(255,255,255));
     }//GEN-LAST:event_settingsBtnMouseExited
 
-    private void deleteBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deleteBtnActionPerformed
-        try {                                          
-            int del = csvCon.deleteAllFromDatabase();
-            UpdateTable();
-        }catch(SQLException ex){
-            Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }//GEN-LAST:event_deleteBtnActionPerformed
-
     private void csvBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_csvBtnActionPerformed
         try {
-            readAndWriteCSVFileToDatabase();
-        }catch (SQLException ex){
+            GUIDashboard.csvCon.compareCsvToDatabase();
+            UpdateTable();
+        } catch (SQLException ex) {
+            Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
             Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
         }
-        UpdateTable();
     }//GEN-LAST:event_csvBtnActionPerformed
 
     private void sampleTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sampleTableMouseClicked
@@ -1795,111 +2057,16 @@ public class GUIDashboard extends javax.swing.JFrame {
     }//GEN-LAST:event_setCsvPathBtnActionPerformed
 
     private void dateApplyBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_dateApplyBtnActionPerformed
+
+        String from = ((JTextField)dateFromTf.getDateEditor().getUiComponent()).getText();
+        String to = ((JTextField)dateToTf.getDateEditor().getUiComponent()).getText();
+
         try {
-            renderChart();
-            String from = ((JTextField)dateFromTf.getDateEditor().getUiComponent()).getText();
-            String to = ((JTextField)dateToTf.getDateEditor().getUiComponent()).getText();
-            
-            ArrayList<ReportData> dateListFromDB = repCon.getDateDataFromDatabase(from, to);
-
-            Map<String, List<ReportData>> dateGrouped = 
-                        dateListFromDB.stream().collect(Collectors.groupingBy(w -> w.Date));
-            
-            for (Map.Entry<String, List<ReportData>> entry : dateGrouped.entrySet()) {
-                System.out.println("Key = " + entry.getKey() + ", Value = " + entry.getValue());
-                
-                double totalTime = 0.0;
-                double overHr = 0.0;
-                double totalSamplesPerDay = 0.0;
-                double averageTime = 0.0;
-                double percentOverHr = 0.0;
-                List<ReportData> dataList = entry.getValue();
-                
-                for(ReportData data : dataList){
-                    totalSamplesPerDay = totalSamplesPerDay+1;
-                    
-                    int SampNum = data.getSampleNumber();              
-                    String StartDate = data.getDate();
-                    String Department = data.getDepartment();
-                    String Tests = data.getTests();
-                    String RequestTime = data.getRequestTime();
-                    String StartTime = data.getStartTime();
-                    String ReportedDate = data.getReportedDate();
-                    String ReportedTime = data.getReportedTime();
-                    String FinishedTime = data.getFinishedTime();
-                    
-                    //System.out.println(SampNum);
-                    //convert starttime and finishedtime to (HH:mm)
-                    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
-                    
-                    String[] startSplit = StartTime.split(":");
-                    int startHour = Integer.parseInt(startSplit[0]);
-                    int startMin = Integer.parseInt(startSplit[1]);
-                    
-                    String[] endSplit = FinishedTime.split(":");
-                    int endHour = Integer.parseInt(endSplit[0]);
-                    int endMin = Integer.parseInt(endSplit[1]);
-                        
-                    int timeDifMin = endMin-startMin;
-                    int timeDifHour = endHour-startHour;
-                    
-                    if(timeDifHour < 1 && timeDifHour > -1){
-                        totalTime = totalTime+timeDifMin;
-                    }else if(timeDifHour == 1){
-                        totalTime = totalTime+(timeDifMin+60);
-                        if(timeDifMin+60 >= 60){
-                            overHr = overHr+1;
-                        }
-                    }else if(timeDifHour == 2){
-                        totalTime = totalTime+(timeDifMin+120);
-                        overHr = overHr+1;
-                    }else if(timeDifHour == 3){
-                        totalTime = totalTime+(timeDifMin+180);
-                        overHr = overHr+1;
-                    }else if(timeDifHour == -23){
-                        totalTime = totalTime+(timeDifMin+60);
-                        if(timeDifMin+60 >= 60){
-                            overHr = overHr+1;
-                        }
-                    }else if(timeDifHour == -22){
-                        totalTime = totalTime+(timeDifMin+120);
-                        overHr = overHr+1;
-                    }else if(timeDifHour == -21){
-                        totalTime = totalTime+(timeDifMin+180);
-                        overHr = overHr+1;
-                    }
-                    
-//                    System.out.println("Sample starttime = "+StartTime+" Endtime = "+FinishedTime);
-//                    System.out.println("Min diff:"+timeDifMin);
-//                    System.out.println("Hour diff:"+timeDifHour);
-//                    System.out.println("Diff:"+totalTime);                    
-
-                }
-                
-                
-                
-                System.out.println("Total samp in day: "+totalSamplesPerDay);
-                System.out.println("Total samp time: "+totalTime);
-                
-                averageTime = (totalTime/totalSamplesPerDay);
-                averageTime = Math.round(averageTime * 100);
-                averageTime = averageTime/100;
-                System.out.println("Average time: "+averageTime);
-                System.out.println("Total over hr: "+overHr);
-                percentOverHr = overHr/totalSamplesPerDay;
-                percentOverHr = percentOverHr*100;
-                percentOverHr = Math.round(percentOverHr * 100);
-                percentOverHr = percentOverHr/100;
-                
-                System.out.println("Percent over hr: "+percentOverHr);
-
-            }
-            
+            renderChart(from, to);
         } catch (SQLException ex) {
             Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
         }
-            
-        
+
     }//GEN-LAST:event_dateApplyBtnActionPerformed
 
     private void applyBtn1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_applyBtn1ActionPerformed
@@ -1913,20 +2080,83 @@ public class GUIDashboard extends javax.swing.JFrame {
     }//GEN-LAST:event_applyBtn1ActionPerformed
 
     private void setCsvPathBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_setCsvPathBtnMouseEntered
-        setCsvPathBtn.setBackground(new Color(240,240,240));
+        setCsvPathBtn.setBackground(new Color(51,153,255));
     }//GEN-LAST:event_setCsvPathBtnMouseEntered
 
     private void setCsvPathBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_setCsvPathBtnMouseExited
-        setCsvPathBtn.setBackground(new Color(255,255,255));
+        setCsvPathBtn.setBackground(new Color(8,118,188));
     }//GEN-LAST:event_setCsvPathBtnMouseExited
 
     private void applyBtn1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_applyBtn1MouseEntered
-        applyBtn1.setBackground(new Color(240,240,240));
+        applyBtn1.setBackground(new Color(51,153,255));
     }//GEN-LAST:event_applyBtn1MouseEntered
 
     private void applyBtn1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_applyBtn1MouseExited
-        applyBtn1.setBackground(new Color(255,255,255));
+        applyBtn1.setBackground(new Color(8,118,188));
     }//GEN-LAST:event_applyBtn1MouseExited
+
+    private void loadcsvBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_loadcsvBtnMouseEntered
+        loadcsvBtn.setBackground(new Color(51,153,255));                                   
+                                  
+        
+    }//GEN-LAST:event_loadcsvBtnMouseEntered
+
+    private void loadcsvBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_loadcsvBtnMouseExited
+        loadcsvBtn.setBackground(new Color(8,118,188));
+    }//GEN-LAST:event_loadcsvBtnMouseExited
+
+    private void delcsvBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_delcsvBtnMouseEntered
+        delcsvBtn.setBackground(new Color(51,153,255));
+    }//GEN-LAST:event_delcsvBtnMouseEntered
+
+    private void delcsvBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_delcsvBtnMouseExited
+        delcsvBtn.setBackground(new Color(8,118,188));
+    }//GEN-LAST:event_delcsvBtnMouseExited
+
+    private void dateApplyBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dateApplyBtnMouseEntered
+        dateApplyBtn.setBackground(new Color(51,153,255));
+    }//GEN-LAST:event_dateApplyBtnMouseEntered
+
+    private void dateApplyBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dateApplyBtnMouseExited
+        dateApplyBtn.setBackground(new Color(8,118,188));
+    }//GEN-LAST:event_dateApplyBtnMouseExited
+
+    private void delCsvBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_delCsvBtnActionPerformed
+        try {                                          
+            int del = csvCon.deleteAllFromDatabase();
+            UpdateTable();
+        }catch(SQLException ex){
+            Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_delCsvBtnActionPerformed
+
+    private void delCsvBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_delCsvBtnMouseEntered
+        delCsvBtn.setBackground(new Color(51,153,255));
+    }//GEN-LAST:event_delCsvBtnMouseEntered
+
+    private void delCsvBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_delCsvBtnMouseExited
+        delCsvBtn.setBackground(new Color(8,118,188));
+    }//GEN-LAST:event_delCsvBtnMouseExited
+
+    private void csvBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_csvBtnMouseEntered
+        csvBtn.setBackground(new Color(51,153,255));
+    }//GEN-LAST:event_csvBtnMouseEntered
+
+    private void csvBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_csvBtnMouseExited
+        csvBtn.setBackground(new Color(8,118,188));
+    }//GEN-LAST:event_csvBtnMouseExited
+
+    private void saveGraphBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_saveGraphBtnMouseEntered
+        saveGraphBtn.setBackground(new Color(51,153,255));
+    }//GEN-LAST:event_saveGraphBtnMouseEntered
+
+    private void saveGraphBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_saveGraphBtnMouseExited
+        saveGraphBtn.setBackground(new Color(8,118,188));
+    }//GEN-LAST:event_saveGraphBtnMouseExited
+
+    private void saveGraphBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveGraphBtnActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_saveGraphBtnActionPerformed
 
     public static void main(String args[]) {
         
@@ -1965,12 +2195,12 @@ public class GUIDashboard extends javax.swing.JFrame {
     private com.toedter.calendar.JDateChooser dateToTf;
     private javax.swing.JTextField defaultAlertTimeTf;
     private javax.swing.JPanel defaultpage;
+    private javax.swing.JButton delCsvBtn;
     private javax.swing.JButton delayBtn;
     private javax.swing.JTextField delayTf;
     private javax.swing.JLabel delayTitleLbl;
     private javax.swing.JLabel delayTitleLbl2;
     private javax.swing.JButton delcsvBtn;
-    private javax.swing.JButton deleteBtn;
     private javax.swing.JButton exitbtn;
     private javax.swing.JPanel indicator1;
     private javax.swing.JPanel indicator2;
@@ -1984,7 +2214,11 @@ public class GUIDashboard extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
+    private javax.swing.JLabel jLabel18;
+    private javax.swing.JLabel jLabel19;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel20;
+    private javax.swing.JLabel jLabel21;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
@@ -2002,6 +2236,8 @@ public class GUIDashboard extends javax.swing.JFrame {
     private javax.swing.JButton minbtn;
     private javax.swing.JPanel pnlHead;
     private javax.swing.JProgressBar progressBar;
+    private javax.swing.JTextField repOverHourTf;
+    private javax.swing.JTextField repTotalSampTf;
     private javax.swing.JPanel reportBtn;
     private javax.swing.JPanel reportDash;
     private javax.swing.JPanel sampleDash;
@@ -2011,6 +2247,7 @@ public class GUIDashboard extends javax.swing.JFrame {
     private javax.swing.JTextField sampleNumTableTf;
     private javax.swing.JTable sampleTable;
     private javax.swing.JPanel samplebtn;
+    private javax.swing.JButton saveGraphBtn;
     private javax.swing.JButton setCsvPathBtn;
     private javax.swing.JPanel settingsBtn;
     private javax.swing.JPanel settingsDash;
