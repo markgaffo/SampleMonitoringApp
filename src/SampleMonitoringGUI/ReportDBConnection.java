@@ -38,14 +38,15 @@ public class ReportDBConnection{
             con=ReportDBConnection();
         }
         PreparedStatement statement = null;
+        String query = "INSERT INTO report_table (SampleNumber, StartDate, Department, Tests, RequestTime, "
+                    + " StartTime, ReportedDate, ReportedTime, FinishedTime ) "
+                    + "VALUES(?,?,?,?,?,?,?,?,?)";
+        
+        statement = con.prepareStatement(query);
         try{
             //con.setAutoCommit(false);
             for(ReportData data : dataList){
-                String query = "INSERT INTO report_table (SampleNumber, StartDate, Department, Tests, RequestTime, "
-                    + " StartTime, ReportedDate, ReportedTime, FinishedTime ) "
-                    + "VALUES(?,?,?,?,?,?,?,?,?)";
 
-                statement = con.prepareStatement(query);
                 statement.setInt(1, data.getSampleNumber());
                 statement.setString(2, data.getDate());
                 statement.setString(3, data.getDepartment());
@@ -55,9 +56,9 @@ public class ReportDBConnection{
                 statement.setString(7, data.getReportedDate());
                 statement.setString(8, data.getReportedTime());
                 statement.setString(9, data.getFinishedTime());
-                statement.execute();
+                statement.addBatch();
             }
-            
+            statement.executeBatch();
             con.close();
             return true;
             }catch(SQLException e){
