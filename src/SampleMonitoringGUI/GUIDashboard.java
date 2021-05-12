@@ -67,6 +67,9 @@ import java.util.TimerTask;
 import java.util.stream.Collectors;
 import javafx.util.Pair;
 import javax.swing.JTextField;
+import org.jfree.chart.ChartRenderingInfo;
+import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.entity.StandardEntityCollection;
 
 public class GUIDashboard extends javax.swing.JFrame {
 
@@ -244,9 +247,10 @@ public class GUIDashboard extends javax.swing.JFrame {
         String toDate = to;
         Pair<DefaultCategoryDataset, DefaultCategoryDataset> p;
         
-        //Bar
+        
         p = createDataset1(fromDate, toDate);
-
+        
+        //Bar
         final CategoryDataset dataset1 = p.getKey();
         //Line
         final CategoryDataset dataset2 = p.getValue();
@@ -260,7 +264,7 @@ public class GUIDashboard extends javax.swing.JFrame {
             PlotOrientation.VERTICAL, // orientation
             true,                     // include legend
             true,                     // tooltips?
-            false                     // URL generator?  Not required...
+            false                     // url 
         );
 
         // setting chart parmas
@@ -278,6 +282,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         barRenderer.setSeriesItemLabelsVisible(1, true);
         barRenderer.setBaseItemLabelsVisible(true);
         barRenderer.setBaseSeriesVisible(true);
+        
          
         
         //right Y axis
@@ -305,15 +310,23 @@ public class GUIDashboard extends javax.swing.JFrame {
         plot.setRenderer(1, renderer2);
         plot.setDatasetRenderingOrder(DatasetRenderingOrder.REVERSE);
         
+        //save as png
+        try{
+            final ChartRenderingInfo infoPic = new ChartRenderingInfo(new StandardEntityCollection());
+            final File graphF = new File("ReportGraph.png");
+            ChartUtilities.saveChartAsPNG(graphF, chart, 1200, 800, infoPic);
+        }catch(Exception e){
+            JOptionPane.showMessageDialog(null, e);
+        }
         
-        // add the chart in the panel
+        //add the chart in the panel
         final ChartPanel cp = new ChartPanel(chart);
+        cp.setDomainZoomable(false);
+        cp.setRangeZoomable(false);
         chartPanel.add(cp, BorderLayout.CENTER);
         chartPanel.validate();
     }
 
-//    public 
-    
     private Pair createDataset1(String from, String to) throws SQLException {
 
         //getting all the data between date range and setting up the dateobject
@@ -327,9 +340,7 @@ public class GUIDashboard extends javax.swing.JFrame {
             
             for (Map.Entry<String, List<ReportData>> entry : dateGrouped.entrySet()) {
                 System.out.println("Key = " + entry.getKey() + ", Value = " + entry.getValue());
-                
-
-                
+    
                 double totalTime = 0.0;
                 double overHr = 0.0;
                 double totalSamplesPerDay = 0.0;
@@ -351,9 +362,7 @@ public class GUIDashboard extends javax.swing.JFrame {
                     String FinishedTime = data.getFinishedTime();
                     
                     //System.out.println(SampNum);
-                    //convert starttime and finishedtime to (HH:mm)
-                    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
-                    
+                    //convert starttime and finishedtime to (HH:mm)                  
                     String[] startSplit = StartTime.split(":");
                     int startHour = Integer.parseInt(startSplit[0]);
                     int startMin = Integer.parseInt(startSplit[1]);
@@ -390,7 +399,6 @@ public class GUIDashboard extends javax.swing.JFrame {
                         totalTime = totalTime+(timeDifMin+180);
                         overHr = overHr+1;
                     }              
-
                 }
 
                 System.out.println("Total samp in day: "+totalSamplesPerDay);
@@ -398,6 +406,7 @@ public class GUIDashboard extends javax.swing.JFrame {
                 allOverHour = allOverHour + overHr;
                 allTotalSamp = allTotalSamp + totalSamplesPerDay;
                 
+                //to give 2 digit precent % value
                 averageTime = (totalTime/totalSamplesPerDay);
                 averageTime = Math.round(averageTime * 100);
                 averageTime = averageTime/100;
@@ -415,13 +424,12 @@ public class GUIDashboard extends javax.swing.JFrame {
                 feed.setAvgTime(averageTime);
                 dateSet.add(feed);
                 
-                
                 System.out.println("Average time: " + averageTime);
                 System.out.println("Total over hr: " + overHr);
                 System.out.println("Percent over hr: "+percentOverHr);
             }
 
-            
+            //to sort the dates in the correct order
             Collections.sort(dateSet, (DateOverHour o1, DateOverHour o2) -> {
                 DateFormat f = new SimpleDateFormat("dd/MM/yyyy");
                 try {
@@ -527,7 +535,6 @@ public class GUIDashboard extends javax.swing.JFrame {
             data.setStarttime(time);
             dataList.add(data);
             }
-//        System.out.println("Size : " + dataList.size());
 
         return dataList;
     }
@@ -538,6 +545,7 @@ public class GUIDashboard extends javax.swing.JFrame {
             CSVReader csvReader = new CSVReader(filereader); 
             String[] nextRecord; 
             ArrayList<ReportData> rdataList = new ArrayList<ReportData>();
+            
             while((nextRecord = csvReader.readNext()) != null){
                 //System.out.println(nextRecord[0]);
                 ReportData rdata = new ReportData();
@@ -648,7 +656,6 @@ public class GUIDashboard extends javax.swing.JFrame {
         repTotalSampTf = new javax.swing.JTextField();
         jLabel19 = new javax.swing.JLabel();
         repOverHourTf = new javax.swing.JTextField();
-        saveGraphBtn = new javax.swing.JButton();
         settingsDash = new javax.swing.JPanel();
         jLabel4 = new javax.swing.JLabel();
         setCsvPathBtn = new javax.swing.JButton();
@@ -753,6 +760,11 @@ public class GUIDashboard extends javax.swing.JFrame {
                 minbtnMouseExited(evt);
             }
         });
+        minbtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                minbtnActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout pnlHeadLayout = new javax.swing.GroupLayout(pnlHead);
         pnlHead.setLayout(pnlHeadLayout);
@@ -762,7 +774,8 @@ public class GUIDashboard extends javax.swing.JFrame {
                 .addGap(0, 0, Short.MAX_VALUE)
                 .addComponent(minbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(0, 0, 0)
-                .addComponent(exitbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addComponent(exitbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(4, 4, 4))
         );
         pnlHeadLayout.setVerticalGroup(
             pnlHeadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -997,7 +1010,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         defaultpage.setLayout(defaultpageLayout);
         defaultpageLayout.setHorizontalGroup(
             defaultpageLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1005, Short.MAX_VALUE)
+            .addGap(0, 1007, Short.MAX_VALUE)
         );
         defaultpageLayout.setVerticalGroup(
             defaultpageLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1072,18 +1085,14 @@ public class GUIDashboard extends javax.swing.JFrame {
         dateSelectLayout.setHorizontalGroup(
             dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(dateSelectLayout.createSequentialGroup()
+                .addContainerGap()
                 .addGroup(dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, dateSelectLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addGroup(dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(dateFromTf, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(dateToTf, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, dateSelectLayout.createSequentialGroup()
-                                .addComponent(jLabel15)
-                                .addGap(0, 0, Short.MAX_VALUE))))
+                    .addComponent(dateFromTf, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(dateToTf, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(dateSelectLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jLabel16)
+                        .addGroup(dateSelectLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel15)
+                            .addComponent(jLabel16))
                         .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, dateSelectLayout.createSequentialGroup()
@@ -1150,27 +1159,6 @@ public class GUIDashboard extends javax.swing.JFrame {
         repOverHourTf.setFont(new java.awt.Font("Sitka Heading", 1, 16)); // NOI18N
         repOverHourTf.setBorder(null);
 
-        saveGraphBtn.setBackground(new java.awt.Color(8, 118, 188));
-        saveGraphBtn.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
-        saveGraphBtn.setForeground(new java.awt.Color(255, 255, 255));
-        saveGraphBtn.setText("Save as PNG");
-        saveGraphBtn.setBorder(javax.swing.BorderFactory.createEtchedBorder());
-        saveGraphBtn.setContentAreaFilled(false);
-        saveGraphBtn.setOpaque(true);
-        saveGraphBtn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                saveGraphBtnMouseEntered(evt);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                saveGraphBtnMouseExited(evt);
-            }
-        });
-        saveGraphBtn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                saveGraphBtnActionPerformed(evt);
-            }
-        });
-
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
@@ -1188,8 +1176,7 @@ public class GUIDashboard extends javax.swing.JFrame {
                                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
                                         .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                             .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                            .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                            .addComponent(saveGraphBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                            .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE))
                                         .addGap(22, 22, 22))))
                             .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                                 .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
@@ -1200,7 +1187,7 @@ public class GUIDashboard extends javax.swing.JFrame {
                                 .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
                                     .addGap(20, 20, 20)
                                     .addComponent(dateSelect, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                        .addGap(0, 0, Short.MAX_VALUE))
+                        .addGap(0, 2, Short.MAX_VALUE))
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addContainerGap()
                         .addComponent(jLabel19)
@@ -1227,9 +1214,7 @@ public class GUIDashboard extends javax.swing.JFrame {
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel19)
                     .addComponent(repOverHourTf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 30, Short.MAX_VALUE)
-                .addComponent(saveGraphBtn)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 68, Short.MAX_VALUE)
                 .addComponent(loadcsvBtn)
                 .addGap(12, 12, 12)
                 .addComponent(delcsvBtn)
@@ -1618,7 +1603,7 @@ public class GUIDashboard extends javax.swing.JFrame {
 
         delayTitleLbl.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
         delayTitleLbl.setForeground(new java.awt.Color(8, 118, 188));
-        delayTitleLbl.setText("Select a sample to view more details, the");
+        delayTitleLbl.setText("Select a sample to view more details. The");
 
         totalSamplepanel.setBackground(new java.awt.Color(247, 247, 247));
 
@@ -1655,28 +1640,28 @@ public class GUIDashboard extends javax.swing.JFrame {
         totalSamplepanelLayout.setHorizontalGroup(
             totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(totalSamplepanelLayout.createSequentialGroup()
-                .addContainerGap()
+                .addGap(17, 17, 17)
                 .addComponent(totalsamplesLbl)
-                .addGap(11, 11, 11)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(27, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         totalSamplepanelLayout.setVerticalGroup(
             totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, totalSamplepanelLayout.createSequentialGroup()
+            .addGroup(totalSamplepanelLayout.createSequentialGroup()
                 .addGroup(totalSamplepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(totalSamplepanelLayout.createSequentialGroup()
-                        .addGap(23, 23, 23)
-                        .addComponent(totalsamplesLbl))
-                    .addGroup(totalSamplepanelLayout.createSequentialGroup()
                         .addContainerGap()
-                        .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(totalSamplepanelLayout.createSequentialGroup()
+                        .addGap(23, 23, 23)
+                        .addComponent(totalsamplesLbl)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         delayTitleLbl2.setFont(new java.awt.Font("Sitka Heading", 1, 18)); // NOI18N
         delayTitleLbl2.setForeground(new java.awt.Color(8, 118, 188));
-        delayTitleLbl2.setText("start time of the sample can be edited ");
+        delayTitleLbl2.setText("start time can be adjusted.");
 
         delCsvBtn.setBackground(new java.awt.Color(8, 118, 188));
         delCsvBtn.setFont(new java.awt.Font("Sitka Heading", 1, 16)); // NOI18N
@@ -1707,19 +1692,19 @@ public class GUIDashboard extends javax.swing.JFrame {
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addContainerGap()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(delayTitleLbl)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(delayTitleLbl, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(delayTitleLbl2)
-                            .addComponent(totalSamplepanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addGap(49, 49, 49)
-                                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                                .addGap(52, 52, 52)
+                                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(totalSamplepanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addGap(88, 88, 88)
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(delCsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 181, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(csvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 181, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1766,9 +1751,9 @@ public class GUIDashboard extends javax.swing.JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(pnlHead, javax.swing.GroupLayout.DEFAULT_SIZE, 1005, Short.MAX_VALUE)
             .addComponent(bodypnl, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addComponent(toppnl, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(pnlHead, javax.swing.GroupLayout.DEFAULT_SIZE, 1007, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1961,9 +1946,9 @@ public class GUIDashboard extends javax.swing.JFrame {
         try {
             int i = repCon.deleteAllFromDatabase();
             if(i > 0){
-                JOptionPane.showMessageDialog(this, "The file has been removed");
+                JOptionPane.showMessageDialog(this, "The table has been cleared");
             }else{
-                JOptionPane.showMessageDialog(this, "There is currently no file");
+                JOptionPane.showMessageDialog(this, "Table is cleared");
             }
         } catch (SQLException ex) {
             Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
@@ -2146,17 +2131,9 @@ public class GUIDashboard extends javax.swing.JFrame {
         csvBtn.setBackground(new Color(8,118,188));
     }//GEN-LAST:event_csvBtnMouseExited
 
-    private void saveGraphBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_saveGraphBtnMouseEntered
-        saveGraphBtn.setBackground(new Color(51,153,255));
-    }//GEN-LAST:event_saveGraphBtnMouseEntered
-
-    private void saveGraphBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_saveGraphBtnMouseExited
-        saveGraphBtn.setBackground(new Color(8,118,188));
-    }//GEN-LAST:event_saveGraphBtnMouseExited
-
-    private void saveGraphBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveGraphBtnActionPerformed
+    private void minbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_minbtnActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_saveGraphBtnActionPerformed
+    }//GEN-LAST:event_minbtnActionPerformed
 
     public static void main(String args[]) {
         
@@ -2247,7 +2224,6 @@ public class GUIDashboard extends javax.swing.JFrame {
     private javax.swing.JTextField sampleNumTableTf;
     private javax.swing.JTable sampleTable;
     private javax.swing.JPanel samplebtn;
-    private javax.swing.JButton saveGraphBtn;
     private javax.swing.JButton setCsvPathBtn;
     private javax.swing.JPanel settingsBtn;
     private javax.swing.JPanel settingsDash;

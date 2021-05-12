@@ -6,17 +6,20 @@ import java.awt.event.KeyEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 public class RegisterGUI extends javax.swing.JFrame {
 
-    Connection conn=null;
+    Connection con=null;
     ResultSet rs =null;
     PreparedStatement prep =null;
     
     public RegisterGUI() {
         initComponents();
-        conn=CsvDBConnection.CsvDBConnection();
+        con=CsvDBConnection.CsvDBConnection();
     }
 
     /**
@@ -36,6 +39,7 @@ public class RegisterGUI extends javax.swing.JFrame {
         usernameTf = new javax.swing.JTextField();
         passwordTf = new javax.swing.JPasswordField();
         regBtn = new javax.swing.JButton();
+        backBtn = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -106,6 +110,14 @@ public class RegisterGUI extends javax.swing.JFrame {
                 .addGap(21, 21, 21))
         );
 
+        backBtn.setBackground(new java.awt.Color(55, 214, 224));
+        backBtn.setText("Back");
+        backBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                backBtnActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -113,16 +125,25 @@ public class RegisterGUI extends javax.swing.JFrame {
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jLabel3)
-                .addGap(18, 18, 18)
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addGap(18, 18, 18)
+                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(backBtn)
+                        .addGap(20, 20, 20))))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(backBtn))
                     .addComponent(jLabel3))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
@@ -147,19 +168,36 @@ public class RegisterGUI extends javax.swing.JFrame {
     }//GEN-LAST:event_passwordTfActionPerformed
 
     private void passwordTfKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_passwordTfKeyPressed
+        if(con != null){
+            try {
+                if(con.isClosed()){
+                    con=CsvDBConnection.CsvDBConnection();
+                }
+                else{
+                    con.close();
+                    con=CsvDBConnection.CsvDBConnection();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(LoginGUI.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        else{
+            con=CsvDBConnection.CsvDBConnection();
+        }
         if(evt.getKeyCode()==KeyEvent.VK_ENTER){
             String sql = "INSERT INTO user VALUES (?,?);";
             try{
-                prep=conn.prepareStatement(sql);
+                prep=con.prepareStatement(sql);
                 prep.setString(1, usernameTf.getText());
                 prep.setString(2, passwordTf.getText());
                 prep.execute();
 
                 rs.close();
                 prep.close();
+                con.close();
                 this.dispose();
-                GUIDashboard guiD = new GUIDashboard();
-                guiD.setVisible(true);
+                LoginGUI logGui = new LoginGUI();
+                logGui.setVisible(true);
                 JOptionPane.showMessageDialog(null, "Account created");
             }catch(Exception e){
                 JOptionPane.showMessageDialog(null, "Registeration failed " + e);
@@ -168,9 +206,25 @@ public class RegisterGUI extends javax.swing.JFrame {
     }//GEN-LAST:event_passwordTfKeyPressed
 
     private void regBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_regBtnActionPerformed
+        if(con != null){
+            try {
+                if(con.isClosed()){
+                    con=CsvDBConnection.CsvDBConnection();
+                }
+                else{
+                    con.close();
+                    con=CsvDBConnection.CsvDBConnection();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(LoginGUI.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        else{
+            con=CsvDBConnection.CsvDBConnection();
+        }
         String sql = "INSERT INTO `user` (`user_name`, `user_password`) VALUES (?,?) ";
         try{
-            prep=conn.prepareStatement(sql);
+            prep=con.prepareStatement(sql);
             prep.setString(1, usernameTf.getText());
             prep.setString(2, passwordTf.getText());
             prep.execute();
@@ -178,14 +232,21 @@ public class RegisterGUI extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(null, "Account created");
             
             prep.close();
+            con.close();
             this.dispose();
-            GUIDashboard guiD = new GUIDashboard();
-            guiD.setVisible(true);
+            LoginGUI logGui = new LoginGUI();
+            logGui.setVisible(true);
             
         }catch(Exception e){
             JOptionPane.showMessageDialog(null, "Registeration failed " + e);
         }
     }//GEN-LAST:event_regBtnActionPerformed
+
+    private void backBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_backBtnActionPerformed
+        this.dispose();
+        LoginGUI logGui = new LoginGUI();
+        logGui.setVisible(true);
+    }//GEN-LAST:event_backBtnActionPerformed
 
     /**
      * @param args the command line arguments
@@ -223,6 +284,7 @@ public class RegisterGUI extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton backBtn;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

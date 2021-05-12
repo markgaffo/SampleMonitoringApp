@@ -6,17 +6,20 @@ import java.awt.event.KeyEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 public class LoginGUI extends javax.swing.JFrame {
-    Connection conn=null;
+    Connection con=null;
     ResultSet rs =null;
     PreparedStatement prep =null;
     
     
     public LoginGUI() {
         initComponents();
-        conn=CsvDBConnection.CsvDBConnection();
+        con=CsvDBConnection.CsvDBConnection();
     }
 
     
@@ -154,9 +157,25 @@ public class LoginGUI extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void loginBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loginBtnActionPerformed
+        if(con != null){
+            try {
+                if(con.isClosed()){
+                    con=CsvDBConnection.CsvDBConnection();
+                }
+                else{
+                    con.close();
+                    con=CsvDBConnection.CsvDBConnection();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(LoginGUI.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        else{
+            con=CsvDBConnection.CsvDBConnection();
+        }
         String sql = "select * from user where user_name=? and user_password=?";
         try{
-            prep=conn.prepareStatement(sql);
+            prep=con.prepareStatement(sql);
             prep.setString(1, usernameTf.getText());
             prep.setString(2, passwordTf.getText());
             
@@ -164,6 +183,7 @@ public class LoginGUI extends javax.swing.JFrame {
             if(rs.next()){
                 rs.close();
                 prep.close();
+                con.close();
                 this.dispose();
                 GUIDashboard guiD = new GUIDashboard();
                 guiD.setVisible(true);
@@ -181,10 +201,26 @@ public class LoginGUI extends javax.swing.JFrame {
     }//GEN-LAST:event_passwordTfActionPerformed
 
     private void passwordTfKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_passwordTfKeyPressed
+        if(con != null){
+            try {
+                if(con.isClosed()){
+                    con=CsvDBConnection.CsvDBConnection();
+                }
+                else{
+                    con.close();
+                    con=CsvDBConnection.CsvDBConnection();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(LoginGUI.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        else{
+            con=CsvDBConnection.CsvDBConnection();
+        }
         if(evt.getKeyCode()==KeyEvent.VK_ENTER){
             String sql = "select * from user where user_name=? and user_password=?";
             try{
-                prep=conn.prepareStatement(sql);
+                prep=con.prepareStatement(sql);
                 prep.setString(1, usernameTf.getText());
                 prep.setString(2, passwordTf.getText());
 
@@ -192,6 +228,7 @@ public class LoginGUI extends javax.swing.JFrame {
                 if(rs.next()){
                     rs.close();
                     prep.close();
+                    con.close();
                     this.dispose();
                     GUIDashboard guiD = new GUIDashboard();
                     guiD.setVisible(true);

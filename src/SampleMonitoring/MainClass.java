@@ -1,6 +1,5 @@
 package SampleMonitoring;
 
-import SampleMonitoringGUI.GUIDashboard;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -25,7 +24,7 @@ public class MainClass {
             e.printStackTrace();
         }
         
-        GUIDashboard guiD = new GUIDashboard();
+        LoginGUI guiD = new LoginGUI();
         guiD.setVisible(true);
 
         
