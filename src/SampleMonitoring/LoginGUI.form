@@ -91,7 +91,7 @@
               <Border info="org.netbeans.modules.form.compat2.border.TitledBorderInfo">
                 <TitledBorder title="Login">
                   <Font PropertyName="font" name="Constantia" size="18" style="1"/>
-                  <Color PropertyName="color" blue="cc" green="cc" red="0" type="rgb"/>
+                  <Color PropertyName="color" blue="bc" green="76" red="8" type="rgb"/>
                 </TitledBorder>
               </Border>
             </Property>
