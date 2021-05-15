@@ -1,7 +1,6 @@
 package SampleMonitoring;
 
 import SampleMonitoringGUI.CsvDBConnection;
-import SampleMonitoringGUI.GUIDashboard;
 import java.awt.event.KeyEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

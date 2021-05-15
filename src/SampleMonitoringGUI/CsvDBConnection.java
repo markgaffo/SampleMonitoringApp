@@ -1,7 +1,14 @@
 package SampleMonitoringGUI;
 
+import SampleMonitoring.CSVFilePath;
+import SampleMonitoring.GUIDashboard;
+import static SampleMonitoring.GUIDashboard.csvCon;
+import static SampleMonitoring.GUIDashboard.csvFile;
 import SampleMonitoring.ReadWrite;
 import SampleMonitoringGUI.CsvData;
+import com.opencsv.CSVReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -107,7 +114,7 @@ public class CsvDBConnection{
 
     public void compareCsvToDatabase() throws SQLException, IOException{
         ArrayList<CsvData> dataListFromDB = getDataFromDatabase();
-        ArrayList<CsvData> dataListFromCSV = GUIDashboard.readAndReturnFromCSV();
+        ArrayList<CsvData> dataListFromCSV = readAndReturnFromCSV();
         ArrayList<CsvData> newDataList = new ArrayList<CsvData>();
         
         for(int i = 0; i < dataListFromCSV.size(); i++){
@@ -211,4 +218,84 @@ public class CsvDBConnection{
         
         return res;
     }
+    
+    public static ArrayList<CsvData> readAndReturnFromCSV() throws IOException{
+        ArrayList<CsvData> dataList = new ArrayList<CsvData>();
+        FileReader filereader;
+        CSVReader csvReader = null;
+        csvFile = CSVFilePath.path;
+
+        try{
+            filereader = new FileReader(csvFile); 
+            csvReader = new CSVReader(filereader); 
+
+        }catch(FileNotFoundException e){
+            e.printStackTrace();
+        }
+            System.out.println("reading from " + csvFile);
+            String[] nextRecord; 
+           
+            while((nextRecord = csvReader.readNext()) != null){
+                CsvData data = new CsvData();
+                data.setSampleNumber(Integer.parseInt(nextRecord[0]));
+                data.setDate(nextRecord[1]);
+                data.setDepartment(nextRecord[2]);
+                data.setTests(nextRecord[3]);
+                data.setRequesttime(nextRecord[4]);
+                String time = nextRecord[5];
+                if(time.length() == 1){
+                    time = "00:0" + time;
+                }else if(time.length() == 2){
+                    time = "00:" + time;
+                }else if(time.length() == 3){
+                    time = "0"+time.substring(0, time.length() - 2) + ":" + time.substring(time.length() - 2, time.length());
+                }else{
+                    time = time.substring(0, time.length() - 2) + ":" + time.substring(time.length() - 2, time.length());
+                }
+            data.setStarttime(time);
+            dataList.add(data);
+            }
+
+        return dataList;
+    }
+    
+    public static boolean readAndWriteCSVFileToDatabase() throws SQLException {    
+        try{
+            csvFile = CSVFilePath.path;
+            System.out.println("reading from " + csvFile);
+            FileReader filereader = new FileReader(csvFile); 
+            CSVReader csvReader = new CSVReader(filereader); 
+            String[] nextRecord; 
+            ArrayList<CsvData> dataList = new ArrayList<CsvData>();
+            
+            while((nextRecord = csvReader.readNext()) != null){
+                CsvData data = new CsvData();
+                data.setSampleNumber(Integer.parseInt(nextRecord[0]));
+                data.setDate(nextRecord[1]);
+                data.setDepartment(nextRecord[2]);
+                data.setTests(nextRecord[3]);
+                data.setRequesttime(nextRecord[4]);
+                String time = nextRecord[5];
+                if(time.length() == 1){
+                    time = "00:0" + time;
+                }else if(time.length() == 2){
+                    time = "00:" + time;
+                }else if(time.length() == 3){
+                    time = "0"+time.substring(0, time.length() - 2) + ":" + time.substring(time.length() - 2, time.length());
+                }else{
+                    time = time.substring(0, time.length() - 2) + ":" + time.substring(time.length() - 2, time.length());
+                }
+                data.setStarttime(time);
+                dataList.add(data);
+            }
+        System.out.println("Size : " + dataList.size());
+        return csvCon.insertDataIntoDatabase(dataList);
+        }catch(IOException e){
+            e.printStackTrace();
+        }catch(NumberFormatException ex){
+            ex.printStackTrace();
+        } 
+        return false;
+    }
+    
 }

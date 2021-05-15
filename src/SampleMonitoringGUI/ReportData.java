@@ -2,8 +2,8 @@ package SampleMonitoringGUI;
 
 
 public class ReportData{
-    int sampleNumber;
-    String Date, Department, Tests, RequestTime,
+    public int sampleNumber;
+    public String Date, Department, Tests, RequestTime,
            StartTime, ReportedDate, ReportedTime, FinishedTime;
     
     public ReportData(){

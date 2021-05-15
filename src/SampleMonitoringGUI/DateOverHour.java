@@ -18,6 +18,7 @@ public class DateOverHour {
 	public DateOverHour(String date, double overHr, double avgTime) {
             Date = date;
             OverHr = overHr;
+            AvgTime = avgTime;
 	}
 
 	public String getDate(){
@@ -38,6 +39,5 @@ public class DateOverHour {
 	public void setAvgTime(double avgTime){
             this.AvgTime = avgTime;
 	}
-        
-        
+      
 }
