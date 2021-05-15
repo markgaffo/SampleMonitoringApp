@@ -1,4 +1,6 @@
 package SampleMonitoringGUI;
+import SampleMonitoring.GUIDashboard;
+import static SampleMonitoring.GUIDashboard.repCon;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -7,6 +9,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import SampleMonitoringGUI.ReportData;
+import com.opencsv.CSVReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ReportDBConnection{
     String url = "jdbc:sqlite:ReportData.db";
@@ -195,4 +202,81 @@ public class ReportDBConnection{
         con.close();
         return 0;
     }
+    
+    public static boolean readAndWriteCSVFileToReportDatabase(String fileName) {    
+        try{
+            FileReader filereader = new FileReader(fileName); 
+            CSVReader csvReader = new CSVReader(filereader); 
+            String[] nextRecord; 
+            ArrayList<ReportData> rdataList = new ArrayList<ReportData>();
+            
+            while((nextRecord = csvReader.readNext()) != null){
+                //System.out.println(nextRecord[0]);
+                ReportData rdata = new ReportData();
+                rdata.setSampleNumber(Integer.parseInt(nextRecord[0]));
+                //add year
+                String sdate = nextRecord[1];
+                sdate = sdate.substring(0, sdate.length()-2)+ "20" + sdate.substring(sdate.length()-2, sdate.length());
+                rdata.setDate(sdate);
+                rdata.setDepartment(nextRecord[2]);
+                rdata.setTests(nextRecord[3]);
+                rdata.setRequestTime(nextRecord[4]);
+                //add time
+                String stime = nextRecord[5];
+                if(stime.length() == 1){
+                    stime = "00:0" + stime;
+                }else if(stime.length() == 2){
+                    stime = "00:" + stime;
+                }else if(stime.length() == 3){
+                    stime = "0"+stime.substring(0, stime.length() - 2) + ":" + stime.substring(stime.length() - 2, stime.length());
+                }else{
+                    stime = stime.substring(0, stime.length() - 2) + ":" + stime.substring(stime.length() - 2, stime.length());
+                }
+                rdata.setStartTime(stime);
+                //add year
+                String rdate = nextRecord[6];
+                rdate = rdate.substring(0, rdate.length()-2)+ "20" + rdate.substring(rdate.length()-2, rdate.length());
+                rdata.setReportedDate(rdate);
+                //add time
+                String reptime = nextRecord[7];
+                if(reptime.length() == 0){
+                    reptime = "00:00" + reptime;
+                }else if(reptime.length() == 1){
+                    reptime = "00:0" + reptime;
+                }else if(reptime.length() == 2){
+                    reptime = "00:" + reptime;
+                }else if(reptime.length() == 3){
+                    reptime = "0"+reptime.substring(0, reptime.length() - 2) + ":" + reptime.substring(reptime.length() - 2, reptime.length());
+                }else{
+                    reptime = reptime.substring(0, reptime.length() - 2) + ":" + reptime.substring(reptime.length() - 2, reptime.length());
+                }
+                rdata.setReportedTime(reptime);
+                String fintime = nextRecord[8];
+                if(fintime.length() == 0){
+                    fintime = "00:00" + fintime;
+                }else if(fintime.length() == 1){
+                    fintime = "00:0" + fintime;
+                }else if(fintime.length() == 2){
+                    fintime = "00:" + fintime;
+                }else if(fintime.length() == 3){
+                    fintime = "0"+fintime.substring(0, fintime.length() - 2) + ":" + fintime.substring(fintime.length() - 2, fintime.length());
+                }else{
+                    fintime = fintime.substring(0, fintime.length() - 2) + ":" + fintime.substring(fintime.length() - 2, fintime.length());
+                }
+                rdata.setFinishedTime(fintime);
+                rdataList.add(rdata);
+            }
+        System.out.println("Size : " + rdataList.size());
+        csvReader.close();
+        return repCon.insertDataIntoDatabase(rdataList);
+        }catch(IOException e){
+            e.printStackTrace();
+        }catch(NumberFormatException ex){
+            ex.printStackTrace();
+        } catch (SQLException ex) {
+            Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+    
 }
