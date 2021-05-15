@@ -81,6 +81,7 @@ public class GUIDashboard extends javax.swing.JFrame {
     public static String sampleNum;
     List<CsvData> lstRecords = null;
     
+    //Timer for checking if samples are delayed
     Timer timer = new Timer();
     TimerTask myTask = new TimerTask() {
         @Override
@@ -101,6 +102,7 @@ public class GUIDashboard extends javax.swing.JFrame {
     };
     
     public GUIDashboard() {
+        //methods which are run when GUI is loaded
         initComponents();
         clock();
         setTableParmas();
@@ -116,6 +118,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         }
     }
     
+    //setting table design
     private void setTableParmas(){
         sampleTable.getColumnModel().getColumn(0).setHeaderValue("Sample Number");
         sampleTable.getColumnModel().getColumn(1).setHeaderValue("Date");
@@ -138,6 +141,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         sampleTable.setRowHeight(25);
     }
     
+    //date and clock
     public void clock(){
         Thread th = new Thread(){
             public void run(){
@@ -164,6 +168,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         th.start();
     }
     
+    //current estimate of a samples progression
     public void progressTime(){
         Date systemTimeD = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
@@ -209,6 +214,7 @@ public class GUIDashboard extends javax.swing.JFrame {
                     progressBar.setValue(1);
                     progressBar.setStringPainted(true); 
                 }
+                //if clocks goes over 23:59 time
             }else if(timeDifHour == -23){
                 timeDifMin = systemTimeD.getMinutes()-(time.getMinutes()+60);
                 if(timeDifMin > 41){
@@ -245,7 +251,7 @@ public class GUIDashboard extends javax.swing.JFrame {
                     progressBar.setValue(99);
                     progressBar.setStringPainted(true); 
                 }
-                
+                //if clock goes over 23:59 time
             }else if(timeDifHour == 23){
                 progressBar.setValue(1);
                 progressBar.setStringPainted(true); 
@@ -293,6 +299,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         }
     }
     
+    //updating the table records from the database
     private void UpdateTable(){
         if(csvConn != null){
             try {
@@ -1523,10 +1530,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGap(18, 18, 18)
-                        .addComponent(dateSelect, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addContainerGap()
                         .addComponent(jLabel18)
@@ -1536,36 +1540,39 @@ public class GUIDashboard extends javax.swing.JFrame {
                         .addGap(9, 9, 9)
                         .addComponent(jLabel19)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(repOverHourTf, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(21, 21, 21)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addComponent(repOverHourTf))
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addGap(21, 21, 21)
+                        .addComponent(dateSelect, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(15, 15, 15))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(39, 39, 39))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGap(12, 12, 12)
+                .addGap(25, 25, 25)
                 .addComponent(dateSelect, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGap(71, 71, 71)
+                        .addGap(58, 58, 58)
                         .addComponent(jLabel18, javax.swing.GroupLayout.PREFERRED_SIZE, 12, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGap(67, 67, 67)
+                        .addGap(54, 54, 54)
                         .addComponent(repTotalSampTf, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(12, 12, 12)
+                .addGap(35, 35, 35)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, 11, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(repOverHourTf, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 84, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 56, Short.MAX_VALUE)
                 .addComponent(loadcsvBtn)
-                .addGap(11, 11, 11)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(delcsvBtn)
-                .addContainerGap())
+                .addGap(16, 16, 16))
         );
 
         javax.swing.GroupLayout reportDashLayout = new javax.swing.GroupLayout(reportDash);
@@ -1597,16 +1604,31 @@ public class GUIDashboard extends javax.swing.JFrame {
         jPanel4.setBorder(javax.swing.BorderFactory.createEtchedBorder());
 
         testsGroup3Tf.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        testsGroup3Tf.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                testsGroup3TfKeyReleased(evt);
+            }
+        });
 
         jLabel20.setFont(new java.awt.Font("Arial", 0, 16)); // NOI18N
         jLabel20.setText("Test Group 3 (Moderate Priority)");
 
         testsGroup2Tf.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        testsGroup2Tf.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                testsGroup2TfKeyReleased(evt);
+            }
+        });
 
         jLabel5.setFont(new java.awt.Font("Arial", 0, 16)); // NOI18N
         jLabel5.setText("Test Group 2 (High Priority)");
 
         testsGroup1Tf.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        testsGroup1Tf.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                testsGroup1TfKeyReleased(evt);
+            }
+        });
 
         jLabel3.setBackground(new java.awt.Color(0, 0, 0));
         jLabel3.setFont(new java.awt.Font("Arial", 0, 16)); // NOI18N
@@ -2570,6 +2592,24 @@ public class GUIDashboard extends javax.swing.JFrame {
     private void repTotalSampTfActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_repTotalSampTfActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_repTotalSampTfActionPerformed
+
+    private void testsGroup1TfKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_testsGroup1TfKeyReleased
+        int position = testsGroup1Tf.getCaretPosition();
+        testsGroup1Tf.setText(testsGroup1Tf.getText().toUpperCase());
+        testsGroup1Tf.setCaretPosition(position);
+    }//GEN-LAST:event_testsGroup1TfKeyReleased
+
+    private void testsGroup2TfKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_testsGroup2TfKeyReleased
+        int position = testsGroup2Tf.getCaretPosition();
+        testsGroup2Tf.setText(testsGroup2Tf.getText().toUpperCase());
+        testsGroup2Tf.setCaretPosition(position);
+    }//GEN-LAST:event_testsGroup2TfKeyReleased
+
+    private void testsGroup3TfKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_testsGroup3TfKeyReleased
+        int position = testsGroup3Tf.getCaretPosition();
+        testsGroup3Tf.setText(testsGroup3Tf.getText().toUpperCase());
+        testsGroup3Tf.setCaretPosition(position);
+    }//GEN-LAST:event_testsGroup3TfKeyReleased
 
     public static void main(String args[]) {
         
