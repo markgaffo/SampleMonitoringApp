@@ -39,12 +39,12 @@ public class MainClass {
         }  
         
         if (systemDate.isAfter(sampleDate)){
-            //JOptionPane.showMessageDialog(null, "Sample: "+ sampNum+ " is delayed!");
+            JOptionPane.showMessageDialog(null, "Sample: "+ sampNum+ " is delayed!");
             System.out.println("Sample is late by " + systemDate.until(sampleDate,DAYS) + " days and " + systemTime.until(sampleTime, MINUTES) + " minutes");
         }
         else if(sampleDate.isEqual(systemDate)){
             if(systemTime.isAfter(sampleTime)){
-                //JOptionPane.showMessageDialog(null, "Sample: "+ sampNum+ " is delayed!");
+                JOptionPane.showMessageDialog(null, "Sample: "+ sampNum+ " is delayed!");
                 System.out.println("Sample is late by " + systemDate.until(sampleDate,DAYS) + " days and " + systemTime.until(sampleTime, MINUTES) + " minutes");
 
             }
