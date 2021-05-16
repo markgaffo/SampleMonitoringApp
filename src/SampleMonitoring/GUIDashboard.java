@@ -108,10 +108,10 @@ public class GUIDashboard extends javax.swing.JFrame {
         setTableParmas();
         UpdateTable();   
         timer.schedule(myTask, 10000, 60000);
-        String t1, t2;
-        t1="";
-        t2="";
         try {
+            String t1, t2;
+            t1="";
+            t2="";
             renderChart(t1, t2);
         } catch (SQLException ex) {
             Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);
@@ -692,9 +692,9 @@ public class GUIDashboard extends javax.swing.JFrame {
                         newTimeString = hours + ":" + minsString;
                         timeList.add(newTimeString);
                         
-                    }
-                    
-                }else{
+                    }     
+                }
+                else{
                 //for samples with no specific test delay
                     hours = oldSampleTime.getHour() + defaultTestTime.getHour();
                     mins = oldSampleTime.getMinute() + defaultTestTime.getMinute();
@@ -1160,6 +1160,7 @@ public class GUIDashboard extends javax.swing.JFrame {
             }
         });
 
+        indicator1.setBackground(new java.awt.Color(255, 255, 255));
         indicator1.setPreferredSize(new java.awt.Dimension(224, 16));
 
         javax.swing.GroupLayout indicator1Layout = new javax.swing.GroupLayout(indicator1);
@@ -1212,6 +1213,8 @@ public class GUIDashboard extends javax.swing.JFrame {
             }
         });
 
+        indicator2.setBackground(new java.awt.Color(255, 255, 255));
+
         javax.swing.GroupLayout indicator2Layout = new javax.swing.GroupLayout(indicator2);
         indicator2.setLayout(indicator2Layout);
         indicator2Layout.setHorizontalGroup(
@@ -1261,6 +1264,8 @@ public class GUIDashboard extends javax.swing.JFrame {
                 settingsBtnMouseExited(evt);
             }
         });
+
+        indicator3.setBackground(new java.awt.Color(255, 255, 255));
 
         javax.swing.GroupLayout indicator3Layout = new javax.swing.GroupLayout(indicator3);
         indicator3.setLayout(indicator3Layout);
@@ -1415,6 +1420,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         dateApplyBtn.setFont(new java.awt.Font("Calibri", 0, 18)); // NOI18N
         dateApplyBtn.setForeground(new java.awt.Color(255, 255, 255));
         dateApplyBtn.setText("Apply");
+        dateApplyBtn.setAutoscrolls(true);
         dateApplyBtn.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(102, 102, 102)));
         dateApplyBtn.setContentAreaFilled(false);
         dateApplyBtn.setOpaque(true);
@@ -1483,7 +1489,7 @@ public class GUIDashboard extends javax.swing.JFrame {
         loadcsvBtn.setBackground(new java.awt.Color(8, 118, 188));
         loadcsvBtn.setFont(new java.awt.Font("Calibri", 0, 18)); // NOI18N
         loadcsvBtn.setForeground(new java.awt.Color(255, 255, 255));
-        loadcsvBtn.setText("Load CSV File");
+        loadcsvBtn.setText("Save CSV File");
         loadcsvBtn.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(102, 102, 102)));
         loadcsvBtn.setContentAreaFilled(false);
         loadcsvBtn.setOpaque(true);
@@ -1507,6 +1513,8 @@ public class GUIDashboard extends javax.swing.JFrame {
 
         repTotalSampTf.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N
         repTotalSampTf.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(120, 157, 163)));
+        repTotalSampTf.setDisabledTextColor(new java.awt.Color(0, 0, 0));
+        repTotalSampTf.setEnabled(false);
         repTotalSampTf.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 repTotalSampTfActionPerformed(evt);
@@ -1519,6 +1527,8 @@ public class GUIDashboard extends javax.swing.JFrame {
 
         repOverHourTf.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N
         repOverHourTf.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(120, 157, 163)));
+        repOverHourTf.setDisabledTextColor(new java.awt.Color(0, 0, 0));
+        repOverHourTf.setEnabled(false);
         repOverHourTf.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 repOverHourTfActionPerformed(evt);
@@ -1530,27 +1540,29 @@ public class GUIDashboard extends javax.swing.JFrame {
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addContainerGap()
                         .addComponent(jLabel18)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(repTotalSampTf, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGap(9, 9, 9)
-                        .addComponent(jLabel19)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(repOverHourTf))
-                    .addGroup(jPanel3Layout.createSequentialGroup()
                         .addGap(21, 21, 21)
                         .addComponent(dateSelect, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(15, 15, 15))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+            .addGroup(jPanel3Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(39, 39, 39))
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(delcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(loadcsvBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(39, 39, 39))
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(jLabel19)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(repOverHourTf)
+                        .addContainerGap())))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1564,11 +1576,11 @@ public class GUIDashboard extends javax.swing.JFrame {
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addGap(54, 54, 54)
                         .addComponent(repTotalSampTf, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(35, 35, 35)
+                .addGap(18, 18, 18)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, 11, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(repOverHourTf, javax.swing.GroupLayout.PREFERRED_SIZE, 19, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 56, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 73, Short.MAX_VALUE)
                 .addComponent(loadcsvBtn)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(delcsvBtn)
@@ -2310,9 +2322,9 @@ public class GUIDashboard extends javax.swing.JFrame {
             try {
                 int i = repCon.deleteAllFromDatabase();
                 if(i > 0){
-                    JOptionPane.showMessageDialog(this, "The table has been cleared");
+                    JOptionPane.showMessageDialog(this, "The file has been cleared");
                 }else{
-                    JOptionPane.showMessageDialog(this, "Table is cleared");
+                    JOptionPane.showMessageDialog(this, "File removed");
                 }
             } catch (SQLException ex) {
                 Logger.getLogger(GUIDashboard.class.getName()).log(Level.SEVERE, null, ex);

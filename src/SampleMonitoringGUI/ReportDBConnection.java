@@ -50,10 +50,11 @@ public class ReportDBConnection{
                     + "VALUES(?,?,?,?,?,?,?,?,?)";
         
         statement = con.prepareStatement(query);
+        int i = 0;
         try{
             //con.setAutoCommit(false);
             for(ReportData data : dataList){
-
+                i++;
                 statement.setInt(1, data.getSampleNumber());
                 statement.setString(2, data.getDate());
                 statement.setString(3, data.getDepartment());
@@ -64,8 +65,12 @@ public class ReportDBConnection{
                 statement.setString(8, data.getReportedTime());
                 statement.setString(9, data.getFinishedTime());
                 statement.addBatch();
+                if((i % 1000) == 0){
+                    statement.executeBatch();
+                }
             }
             statement.executeBatch();
+            con.setAutoCommit(false);
             con.close();
             return true;
             }catch(SQLException e){

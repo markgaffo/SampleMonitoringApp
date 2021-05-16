@@ -1,6 +1,7 @@
 package SampleMonitoring;
 
 import SampleMonitoringGUI.CsvDBConnection;
+import java.awt.Color;
 import java.awt.event.KeyEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -63,16 +64,43 @@ public class LoginGUI extends javax.swing.JFrame {
             }
         });
 
-        loginBtn.setBackground(new java.awt.Color(55, 214, 224));
+        loginBtn.setBackground(new java.awt.Color(8, 118, 188));
+        loginBtn.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
+        loginBtn.setForeground(new java.awt.Color(255, 255, 255));
         loginBtn.setText("Login");
+        loginBtn.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(102, 102, 102)));
+        loginBtn.setContentAreaFilled(false);
+        loginBtn.setOpaque(true);
+        loginBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                loginBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                loginBtnMouseExited(evt);
+            }
+        });
         loginBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 loginBtnActionPerformed(evt);
             }
         });
 
-        regBtn.setBackground(new java.awt.Color(55, 214, 224));
+        regBtn.setBackground(new java.awt.Color(8, 118, 188));
+        regBtn.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
+        regBtn.setForeground(new java.awt.Color(255, 255, 255));
         regBtn.setText("Register");
+        regBtn.setAutoscrolls(true);
+        regBtn.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(102, 102, 102)));
+        regBtn.setContentAreaFilled(false);
+        regBtn.setOpaque(true);
+        regBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                regBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                regBtnMouseExited(evt);
+            }
+        });
         regBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 regBtnActionPerformed(evt);
@@ -93,13 +121,14 @@ public class LoginGUI extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(usernameTf, javax.swing.GroupLayout.DEFAULT_SIZE, 110, Short.MAX_VALUE)
-                            .addComponent(passwordTf)))
+                            .addComponent(passwordTf))
+                        .addGap(0, 0, Short.MAX_VALUE))
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGap(9, 9, 9)
                         .addComponent(regBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(36, 36, 36)
-                        .addComponent(loginBtn)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGap(18, 18, 18)
+                        .addComponent(loginBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -113,10 +142,10 @@ public class LoginGUI extends javax.swing.JFrame {
                     .addComponent(jLabel2)
                     .addComponent(passwordTf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 29, Short.MAX_VALUE)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(loginBtn)
-                    .addComponent(regBtn))
-                .addGap(21, 21, 21))
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(loginBtn, javax.swing.GroupLayout.DEFAULT_SIZE, 29, Short.MAX_VALUE)
+                    .addComponent(regBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
@@ -128,15 +157,17 @@ public class LoginGUI extends javax.swing.JFrame {
                 .addComponent(jLabel3)
                 .addGap(18, 18, 18)
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(18, Short.MAX_VALUE))
+                .addContainerGap(20, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel3))
+                    .addComponent(jLabel3)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addGap(13, 13, 13)
+                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -151,7 +182,7 @@ public class LoginGUI extends javax.swing.JFrame {
             .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
-        setSize(new java.awt.Dimension(463, 282));
+        setSize(new java.awt.Dimension(455, 282));
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
@@ -246,6 +277,22 @@ public class LoginGUI extends javax.swing.JFrame {
         RegisterGUI reg = new RegisterGUI();
         reg.setVisible(true);
     }//GEN-LAST:event_regBtnActionPerformed
+
+    private void regBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_regBtnMouseEntered
+        regBtn.setBackground(new Color(51,153,255)); 
+    }//GEN-LAST:event_regBtnMouseEntered
+
+    private void regBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_regBtnMouseExited
+        regBtn.setBackground(new Color(8,118,188));
+    }//GEN-LAST:event_regBtnMouseExited
+
+    private void loginBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_loginBtnMouseEntered
+        loginBtn.setBackground(new Color(51,153,255)); 
+    }//GEN-LAST:event_loginBtnMouseEntered
+
+    private void loginBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_loginBtnMouseExited
+        loginBtn.setBackground(new Color(8,118,188));
+    }//GEN-LAST:event_loginBtnMouseExited
 
     /**
      * @param args the command line arguments
