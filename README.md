@@ -8,6 +8,7 @@
   gets updated very minute and will alert if a sample exceeds a delay timer set in the settings page.
   The report page needs a different file to be selected then a date range within the file can be put in the date fields.
   A graph will be generated and a PNG file will be saved on the system. Statistics will be displayed on the screen as well.
+  The settings page can be used to set alert times for specific tests within sampels. These will be applied on the next minute check of the samples.
   
 ## How to run
   The project can be pulled or the exe folder can be downloaded.
