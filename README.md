@@ -1,5 +1,7 @@
 # Hopstial Sample Monitoring Program
- This is a final year project created for the use in Hospital laboratories. 
+ This is a final year project created for the use in Hospital laboratories.
+ 
+ The project can be pulled or the exe folder can be downloaded.
  
 ## How to use
   The program uses csv data which is generated from laboratory systems. 
@@ -9,9 +11,7 @@
   The report page needs a different file to be selected then a date range within the file can be put in the date fields.
   A graph will be generated and a PNG file will be saved on the system. Statistics will be displayed on the screen as well.
   The settings page can be used to set alert times for specific tests within sampels. These will be applied on the next minute check of the samples.
-  
-## How to run
-  The project can be pulled or the exe folder can be downloaded.
+   
   
 ## GUI
 Sample page
