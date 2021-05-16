@@ -123,7 +123,7 @@ public class CsvDBConnection{
             CsvData csv = dataListFromCSV.get(i);
             int csvSample = csv.getSampleNumber();
             int dbSample;
-            for (int j = 0; j < dataListFromDB.size(); j++){
+            for(int j = 0; j < dataListFromDB.size(); j++){
                 CsvData db = dataListFromDB.get(j);
                 dbSample = db.getSampleNumber();
                 if (dbSample == csvSample){
@@ -132,7 +132,7 @@ public class CsvDBConnection{
                     break;
                 }
             }
-            if (foundInDB == false){
+            if(foundInDB == false){
                 newDataList.add(csv);
             }
         }       

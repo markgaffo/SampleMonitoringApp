@@ -53,7 +53,7 @@ public class ReportDBConnectionTest {
         System.out.println("insertDataIntoDatabase");
         ArrayList<ReportData> dataList = null;
         ReportDBConnection instance = new ReportDBConnection();
-        boolean expResult = false;
+        boolean expResult = true;
         boolean result = instance.insertDataIntoDatabase(dataList);
         assertEquals(expResult, result);
     }
@@ -78,7 +78,6 @@ public class ReportDBConnectionTest {
         ArrayList<ReportData> expResult = null;
         ArrayList<ReportData> result = instance.getDateDataFromDatabase(from, to);
         assertEquals(expResult, result);
-
     }
 
     @Test

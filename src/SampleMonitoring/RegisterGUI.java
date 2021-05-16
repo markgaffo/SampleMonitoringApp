@@ -1,6 +1,7 @@
 package SampleMonitoring;
 
 import SampleMonitoringGUI.CsvDBConnection;
+import java.awt.Color;
 import java.awt.event.KeyEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -66,8 +67,21 @@ public class RegisterGUI extends javax.swing.JFrame {
             }
         });
 
-        regBtn.setBackground(new java.awt.Color(55, 214, 224));
+        regBtn.setBackground(new java.awt.Color(8, 118, 188));
+        regBtn.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
+        regBtn.setForeground(new java.awt.Color(255, 255, 255));
         regBtn.setText("Register");
+        regBtn.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(102, 102, 102)));
+        regBtn.setContentAreaFilled(false);
+        regBtn.setOpaque(true);
+        regBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                regBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                regBtnMouseExited(evt);
+            }
+        });
         regBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 regBtnActionPerformed(evt);
@@ -105,12 +119,25 @@ public class RegisterGUI extends javax.swing.JFrame {
                     .addComponent(jLabel2)
                     .addComponent(passwordTf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 29, Short.MAX_VALUE)
-                .addComponent(regBtn)
-                .addGap(21, 21, 21))
+                .addComponent(regBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
         );
 
-        backBtn.setBackground(new java.awt.Color(55, 214, 224));
+        backBtn.setBackground(new java.awt.Color(8, 118, 188));
+        backBtn.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
+        backBtn.setForeground(new java.awt.Color(255, 255, 255));
         backBtn.setText("Back");
+        backBtn.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(102, 102, 102)));
+        backBtn.setContentAreaFilled(false);
+        backBtn.setOpaque(true);
+        backBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                backBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                backBtnMouseExited(evt);
+            }
+        });
         backBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 backBtnActionPerformed(evt);
@@ -131,18 +158,18 @@ public class RegisterGUI extends javax.swing.JFrame {
                         .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(backBtn)
-                        .addGap(20, 20, 20))))
+                        .addComponent(backBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 58, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(24, 24, 24))))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(backBtn))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(backBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jLabel3))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
@@ -246,6 +273,22 @@ public class RegisterGUI extends javax.swing.JFrame {
         LoginGUI logGui = new LoginGUI();
         logGui.setVisible(true);
     }//GEN-LAST:event_backBtnActionPerformed
+
+    private void regBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_regBtnMouseEntered
+        regBtn.setBackground(new Color(51,153,255)); 
+    }//GEN-LAST:event_regBtnMouseEntered
+
+    private void regBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_regBtnMouseExited
+        regBtn.setBackground(new Color(8,118,188));
+    }//GEN-LAST:event_regBtnMouseExited
+
+    private void backBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_backBtnMouseEntered
+        backBtn.setBackground(new Color(51,153,255)); 
+    }//GEN-LAST:event_backBtnMouseEntered
+
+    private void backBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_backBtnMouseExited
+        backBtn.setBackground(new Color(8,118,188));
+    }//GEN-LAST:event_backBtnMouseExited
 
     /**
      * @param args the command line arguments
