@@ -6,6 +6,7 @@
 ## How to use
   The program uses csv data which is generated from laboratory systems. 
   Test files are located in the folders for use outside of a laboratory enviornment.
+  Make sure the csv files used while testing the application have the date changed to the current date. If this is not done all the samples will appear delayed as they are behind the current date.
   Set the path to the file in the settings page for monitoring sample data. This path
   gets updated very minute and will alert if a sample exceeds a delay timer set in the settings page.
   The report page needs a different file to be selected then a date range within the file can be put in the date fields.
