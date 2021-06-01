@@ -4,6 +4,8 @@
  The project can be pulled or the exe folder can be downloaded.
  
 ## How to use
+ In the exe files folder the needed libraries can found in the lib folder for the project.
+
   The program uses csv data which is generated from laboratory systems. 
   Test files are located in the folders for use outside of a laboratory enviornment.
   Make sure the csv files used while testing the application have the date changed to the current date. If this is not done all the samples will appear delayed as they are behind the current date.
@@ -13,7 +15,6 @@
   A graph will be generated and a PNG file will be saved on the system. Statistics will be displayed on the screen as well.
   The settings page can be used to set alert times for specific tests within sampels. These will be applied on the next minute check of the samples.
    
-  
 ## GUI
 Sample page
 
