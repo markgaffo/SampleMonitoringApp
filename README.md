@@ -4,7 +4,7 @@
  The project can be pulled or the exe folder can be downloaded.
  
 ## How to use
- In the exe files folder the needed libraries can found in the lib folder for the project.
+ In the exe files folder the needed libraries can found in lib.
 
   The program uses csv data which is generated from laboratory systems. 
   Test files are located in the folders for use outside of a laboratory enviornment.
